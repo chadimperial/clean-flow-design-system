@@ -1,8 +1,12 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { TopNavigation } from "@/components/TopNavigation";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -14,11 +18,27 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-background">
+            <AppSidebar />
+            <div className="flex-1 flex flex-col">
+              <TopNavigation />
+              <main className="flex-1 overflow-auto">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/scheduling" element={<div className="p-6"><h1 className="text-2xl font-bold">Job Scheduling (Coming Soon)</h1></div>} />
+                  <Route path="/staff" element={<div className="p-6"><h1 className="text-2xl font-bold">Staff Management (Coming Soon)</h1></div>} />
+                  <Route path="/clients" element={<div className="p-6"><h1 className="text-2xl font-bold">Client CRM (Coming Soon)</h1></div>} />
+                  <Route path="/finance" element={<div className="p-6"><h1 className="text-2xl font-bold">Finance & Payroll (Coming Soon)</h1></div>} />
+                  <Route path="/inventory" element={<div className="p-6"><h1 className="text-2xl font-bold">Inventory & Equipment (Coming Soon)</h1></div>} />
+                  <Route path="/reports" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports & Analytics (Coming Soon)</h1></div>} />
+                  <Route path="/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings (Coming Soon)</h1></div>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
