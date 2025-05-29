@@ -26,11 +26,11 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#22C55E',
+					DEFAULT: '#4F46E5',
 					foreground: '#FFFFFF'
 				},
 				secondary: {
-					DEFAULT: '#14B8A6',
+					DEFAULT: '#6B7280',
 					foreground: '#FFFFFF'
 				},
 				destructive: {
@@ -38,37 +38,72 @@ export default {
 					foreground: '#FFFFFF'
 				},
 				muted: {
-					DEFAULT: '#F8FAFC',
-					foreground: '#64748B'
+					DEFAULT: '#F9FAFB',
+					foreground: '#6B7280'
 				},
 				accent: {
-					DEFAULT: '#F8FAFC',
-					foreground: '#1E293B'
+					DEFAULT: '#F3F4F6',
+					foreground: '#374151'
 				},
 				popover: {
 					DEFAULT: '#FFFFFF',
-					foreground: '#1E293B'
+					foreground: '#111827'
 				},
 				card: {
 					DEFAULT: '#FFFFFF',
-					foreground: '#1E293B'
+					foreground: '#111827'
 				},
 				sidebar: {
-					DEFAULT: '#FFFFFF',
-					foreground: '#1E293B',
-					primary: '#1E293B',
+					DEFAULT: '#4F46E5',
+					foreground: '#FFFFFF',
+					primary: '#4F46E5',
 					'primary-foreground': '#FFFFFF',
-					accent: '#F8FAFC',
-					'accent-foreground': '#1E293B',
-					border: '#E2E8F0',
-					ring: '#22C55E'
+					accent: '#5B52F0',
+					'accent-foreground': '#FFFFFF',
+					border: '#5B52F0',
+					ring: '#4F46E5'
 				},
 				navy: '#1E293B',
 				success: '#10B981',
 				warning: '#F59E0B',
 				error: '#EF4444',
-				'light-gray': '#F8FAFC',
-				'medium-gray': '#64748B'
+				blue: {
+					50: '#EFF6FF',
+					100: '#DBEAFE',
+					500: '#3B82F6',
+					600: '#2563EB',
+					700: '#1D4ED8'
+				},
+				green: {
+					50: '#ECFDF5',
+					100: '#D1FAE5',
+					500: '#10B981',
+					600: '#059669'
+				},
+				orange: {
+					50: '#FFF7ED',
+					100: '#FFEDD5',
+					500: '#F97316',
+					600: '#EA580C'
+				},
+				red: {
+					50: '#FEF2F2',
+					100: '#FEE2E2',
+					500: '#EF4444',
+					600: '#DC2626'
+				},
+				gray: {
+					50: '#F9FAFB',
+					100: '#F3F4F6',
+					200: '#E5E7EB',
+					300: '#D1D5DB',
+					400: '#9CA3AF',
+					500: '#6B7280',
+					600: '#4B5563',
+					700: '#374151',
+					800: '#1F2937',
+					900: '#111827'
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

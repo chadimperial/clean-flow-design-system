@@ -5,44 +5,44 @@
 
 @layer base {
   :root {
-    --background: #F8FAFC;
-    --foreground: #1E293B;
+    --background: #F9FAFB;
+    --foreground: #111827;
 
     --card: #FFFFFF;
-    --card-foreground: #1E293B;
+    --card-foreground: #111827;
 
     --popover: #FFFFFF;
-    --popover-foreground: #1E293B;
+    --popover-foreground: #111827;
 
-    --primary: #22C55E;
+    --primary: #4F46E5;
     --primary-foreground: #FFFFFF;
 
-    --secondary: #14B8A6;
+    --secondary: #6B7280;
     --secondary-foreground: #FFFFFF;
 
-    --muted: #F8FAFC;
-    --muted-foreground: #64748B;
+    --muted: #F9FAFB;
+    --muted-foreground: #6B7280;
 
-    --accent: #F8FAFC;
-    --accent-foreground: #1E293B;
+    --accent: #F3F4F6;
+    --accent-foreground: #374151;
 
     --destructive: #EF4444;
     --destructive-foreground: #FFFFFF;
 
-    --border: #E2E8F0;
-    --input: #E2E8F0;
-    --ring: #22C55E;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #4F46E5;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: #FFFFFF;
-    --sidebar-foreground: #1E293B;
-    --sidebar-primary: #1E293B;
+    --sidebar-background: #4F46E5;
+    --sidebar-foreground: #FFFFFF;
+    --sidebar-primary: #4F46E5;
     --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #F8FAFC;
-    --sidebar-accent-foreground: #1E293B;
-    --sidebar-border: #E2E8F0;
-    --sidebar-ring: #22C55E;
+    --sidebar-accent: #5B52F0;
+    --sidebar-accent-foreground: #FFFFFF;
+    --sidebar-border: #5B52F0;
+    --sidebar-ring: #4F46E5;
   }
 
   .dark {
@@ -55,10 +55,10 @@
     --popover: #1E293B;
     --popover-foreground: #F1F5F9;
 
-    --primary: #22C55E;
+    --primary: #4F46E5;
     --primary-foreground: #FFFFFF;
 
-    --secondary: #14B8A6;
+    --secondary: #6B7280;
     --secondary-foreground: #FFFFFF;
 
     --muted: #334155;
@@ -72,16 +72,16 @@
 
     --border: #334155;
     --input: #334155;
-    --ring: #22C55E;
+    --ring: #4F46E5;
 
     --sidebar-background: #1E293B;
     --sidebar-foreground: #F1F5F9;
-    --sidebar-primary: #22C55E;
+    --sidebar-primary: #4F46E5;
     --sidebar-primary-foreground: #FFFFFF;
     --sidebar-accent: #334155;
     --sidebar-accent-foreground: #F1F5F9;
     --sidebar-border: #334155;
-    --sidebar-ring: #22C55E;
+    --sidebar-ring: #4F46E5;
   }
 }
 
@@ -101,18 +101,18 @@
 
 @layer components {
   .metric-card {
-    @apply bg-card rounded-lg border p-6 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-[1.02];
   }
   
   .status-badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
   }
   
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2 rounded-md font-medium transition-colors;
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-all duration-200;
   }
 }
