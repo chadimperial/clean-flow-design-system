@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -12,6 +11,7 @@ import Index from "./pages/Index";
 import JobScheduling from "./pages/JobScheduling";
 import StaffManagement from "./pages/StaffManagement";
 import NotFound from "./pages/NotFound";
+import ClientCRM from "./pages/ClientCRM";
 
 // Create QueryClient outside of component to avoid recreation on each render
 const queryClient = new QueryClient({
@@ -40,7 +40,7 @@ const App: React.FC = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/scheduling" element={<JobScheduling />} />
                     <Route path="/staff" element={<StaffManagement />} />
-                    <Route path="/clients" element={<div className="p-6"><h1 className="text-2xl font-bold">Client CRM (Coming Soon)</h1></div>} />
+                    <Route path="/clients" element={<ClientCRM />} />
                     <Route path="/finance" element={<div className="p-6"><h1 className="text-2xl font-bold">Finance & Payroll (Coming Soon)</h1></div>} />
                     <Route path="/inventory" element={<div className="p-6"><h1 className="text-2xl font-bold">Inventory & Equipment (Coming Soon)</h1></div>} />
                     <Route path="/reports" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports & Analytics (Coming Soon)</h1></div>} />
