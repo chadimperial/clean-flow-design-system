@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavigation } from "@/components/TopNavigation";
 import Index from "./pages/Index";
 import JobScheduling from "./pages/JobScheduling";
+import StaffManagement from "./pages/StaffManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +28,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/scheduling" element={<JobScheduling />} />
-                  <Route path="/staff" element={<div className="p-6"><h1 className="text-2xl font-bold">Staff Management (Coming Soon)</h1></div>} />
+                  <Route path="/staff" element={<StaffManagement />} />
                   <Route path="/clients" element={<div className="p-6"><h1 className="text-2xl font-bold">Client CRM (Coming Soon)</h1></div>} />
                   <Route path="/finance" element={<div className="p-6"><h1 className="text-2xl font-bold">Finance & Payroll (Coming Soon)</h1></div>} />
                   <Route path="/inventory" element={<div className="p-6"><h1 className="text-2xl font-bold">Inventory & Equipment (Coming Soon)</h1></div>} />

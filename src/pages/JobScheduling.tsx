@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -58,11 +57,11 @@ const JobScheduling = () => {
     }
   ]
 
-  const staffMembers = [
-    { name: "John Smith", status: "available", avatar: "JS" },
-    { name: "Maria Garcia", status: "busy", avatar: "MG" },
-    { name: "David Chen", status: "on-job", avatar: "DC" },
-    { name: "Sarah Wilson", status: "available", avatar: "SW" }
+  const staffData = [
+    { name: "Sarah Johnson", status: "available" as const, avatar: "SJ", currentLocation: "Downtown Office", nextJob: "2:00 PM - Office Complex", phone: "+1-555-0123", jobsToday: 3 },
+    { name: "Mike Chen", status: "on-job" as const, avatar: "MC", currentLocation: "Residential Area", nextJob: "3:30 PM - Apartment Clean", phone: "+1-555-0124", jobsToday: 4 },
+    { name: "Emma Wilson", status: "busy" as const, avatar: "EW", currentLocation: "Business District", nextJob: "4:00 PM - Deep Clean", phone: "+1-555-0125", jobsToday: 2 },
+    { name: "David Rodriguez", status: "offline" as const, avatar: "DR", currentLocation: "Off Duty", phone: "+1-555-0126", jobsToday: 0 }
   ]
 
   return (
@@ -175,7 +174,7 @@ const JobScheduling = () => {
               </CardHeader>
               <CardContent className="p-0">
                 {currentView === "week" ? (
-                  <WeekView jobs={todaysJobs} staff={staffMembers} />
+                  <WeekView jobs={todaysJobs} staff={staffData} />
                 ) : currentView === "day" ? (
                   <DayView jobs={todaysJobs} />
                 ) : (
@@ -187,7 +186,7 @@ const JobScheduling = () => {
 
           {/* Right Sidebar */}
           <div className="space-y-6">
-            <StaffAvailabilityPanel staff={staffMembers} />
+            <StaffAvailabilityPanel staff={staffData} />
             <JobAnalytics />
           </div>
         </div>
