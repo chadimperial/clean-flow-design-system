@@ -8,6 +8,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavigation } from "@/components/TopNavigation";
 import Index from "./pages/Index";
+import JobScheduling from "./pages/JobScheduling";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,7 +27,7 @@ const App = () => (
               <main className="flex-1 overflow-auto">
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  <Route path="/scheduling" element={<div className="p-6"><h1 className="text-2xl font-bold">Job Scheduling (Coming Soon)</h1></div>} />
+                  <Route path="/scheduling" element={<JobScheduling />} />
                   <Route path="/staff" element={<div className="p-6"><h1 className="text-2xl font-bold">Staff Management (Coming Soon)</h1></div>} />
                   <Route path="/clients" element={<div className="p-6"><h1 className="text-2xl font-bold">Client CRM (Coming Soon)</h1></div>} />
                   <Route path="/finance" element={<div className="p-6"><h1 className="text-2xl font-bold">Finance & Payroll (Coming Soon)</h1></div>} />
