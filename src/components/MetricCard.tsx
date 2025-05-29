@@ -26,6 +26,33 @@ export function MetricCard({
   badge,
   className = "" 
 }: MetricCardProps) {
+  // Map custom variants to supported Badge variants
+  const getBadgeVariant = (variant: "default" | "success" | "warning" | "destructive") => {
+    switch (variant) {
+      case "success":
+        return "default" as const
+      case "warning":
+        return "secondary" as const
+      case "destructive":
+        return "destructive" as const
+      default:
+        return "default" as const
+    }
+  }
+
+  const getBadgeClassName = (variant: "default" | "success" | "warning" | "destructive") => {
+    switch (variant) {
+      case "success":
+        return "bg-success text-white"
+      case "warning":
+        return "bg-warning text-white"
+      case "destructive":
+        return "bg-error text-white"
+      default:
+        return ""
+    }
+  }
+
   return (
     <Card className={`metric-card ${className}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -44,12 +71,8 @@ export function MetricCard({
           )}
           {badge && (
             <Badge 
-              variant={badge.variant === "success" ? "default" : badge.variant}
-              className={`
-                ${badge.variant === "success" ? "bg-success text-white" : ""}
-                ${badge.variant === "warning" ? "bg-warning text-white" : ""}
-                ${badge.variant === "destructive" ? "bg-error text-white" : ""}
-              `}
+              variant={getBadgeVariant(badge.variant)}
+              className={getBadgeClassName(badge.variant)}
             >
               {badge.text}
             </Badge>
