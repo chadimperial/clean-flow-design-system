@@ -12,6 +12,7 @@ import JobScheduling from "./pages/JobScheduling";
 import StaffManagement from "./pages/StaffManagement";
 import NotFound from "./pages/NotFound";
 import ClientCRM from "./pages/ClientCRM";
+import FinancePayroll from "./pages/FinancePayroll";
 
 // Create QueryClient outside of component to avoid recreation on each render
 const queryClient = new QueryClient({
@@ -41,7 +42,7 @@ const App: React.FC = () => {
                     <Route path="/scheduling" element={<JobScheduling />} />
                     <Route path="/staff" element={<StaffManagement />} />
                     <Route path="/clients" element={<ClientCRM />} />
-                    <Route path="/finance" element={<div className="p-6"><h1 className="text-2xl font-bold">Finance & Payroll (Coming Soon)</h1></div>} />
+                    <Route path="/finance" element={<FinancePayroll />} />
                     <Route path="/inventory" element={<div className="p-6"><h1 className="text-2xl font-bold">Inventory & Equipment (Coming Soon)</h1></div>} />
                     <Route path="/reports" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports & Analytics (Coming Soon)</h1></div>} />
                     <Route path="/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings (Coming Soon)</h1></div>} />
