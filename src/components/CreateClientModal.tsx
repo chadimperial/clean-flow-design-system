@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
-import { X, Building2, User, Phone, Mail, MapPin, DollarSign } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Building2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 
 interface CreateClientModalProps {
   open: boolean;
@@ -65,12 +64,15 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             Add New Client
           </DialogTitle>
+          <DialogDescription>
+            Fill in the client information to add them to your CRM system.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -96,7 +98,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="healthcare">Healthcare</SelectItem>
                     <SelectItem value="technology">Technology</SelectItem>
                     <SelectItem value="finance">Finance</SelectItem>
@@ -227,7 +229,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Select service type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="office-cleaning">Office Cleaning</SelectItem>
                     <SelectItem value="deep-cleaning">Deep Cleaning</SelectItem>
                     <SelectItem value="medical-cleaning">Medical Cleaning</SelectItem>
