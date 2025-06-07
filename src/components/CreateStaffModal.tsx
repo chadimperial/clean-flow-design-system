@@ -120,57 +120,77 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add New Staff Member</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[700px] max-h-[95vh] overflow-y-auto bg-white border border-gray-200 shadow-xl">
+        <DialogHeader className="space-y-3 pb-6 border-b border-gray-100">
+          <DialogTitle className="text-2xl font-bold text-gray-900">Add New Staff Member</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Create a new staff member profile with their details and skills.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 pt-6">
           {/* Personal Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-6 bg-blue-500 rounded"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Personal Information</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                  First Name <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
                   onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                  placeholder="Enter first name"
+                  className="w-full h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+              <div className="space-y-3">
+                <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                  Last Name <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="lastName"
                   value={formData.lastName}
                   onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                  placeholder="Enter last name"
+                  className="w-full h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  placeholder="Enter email address"
+                  className="w-full h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
+              <div className="space-y-3">
+                <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                  Phone Number <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="Enter phone number"
+                  className="w-full h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -178,16 +198,22 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
           </div>
 
           {/* Employment Details */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Employment Details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Role *</Label>
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-6 bg-green-500 rounded"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Employment Details</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="role" className="text-sm font-medium text-gray-700">
+                  Role <span className="text-red-500">*</span>
+                </Label>
                 <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
+                  <SelectTrigger className="w-full h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg">
                     <SelectItem value="Team Leader">Team Leader</SelectItem>
                     <SelectItem value="Senior Cleaner">Senior Cleaner</SelectItem>
                     <SelectItem value="Cleaner">Cleaner</SelectItem>
@@ -196,8 +222,10 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+              <div className="space-y-3">
+                <Label htmlFor="hourlyRate" className="text-sm font-medium text-gray-700">
+                  Hourly Rate ($)
+                </Label>
                 <Input
                   id="hourlyRate"
                   type="number"
@@ -205,35 +233,46 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
                   placeholder="15.00"
+                  className="w-full h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Skills */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Skills & Certifications</h3>
-            <div className="flex gap-2">
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-6 bg-purple-500 rounded"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Skills & Certifications</h3>
+            </div>
+            
+            <div className="flex gap-3">
               <Input
                 placeholder="Add a skill (e.g., Carpet Cleaning)"
                 value={newSkill}
                 onChange={(e) => setNewSkill(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                className="flex-1 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
-              <Button type="button" onClick={addSkill} size="sm">
+              <Button 
+                type="button" 
+                onClick={addSkill} 
+                size="sm"
+                className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
             
             {skills.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 {skills.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="flex items-center gap-1">
+                  <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 border border-blue-200">
                     {skill}
                     <button
                       type="button"
                       onClick={() => removeSkill(skill)}
-                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -244,23 +283,41 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Any additional information about the staff member..."
-              value={formData.notes}
-              onChange={(e) => setFormData({...formData, notes: e.target.value})}
-              rows={3}
-            />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-6 bg-yellow-500 rounded"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Additional Notes</h3>
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                Notes (Optional)
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder="Any additional information about the staff member..."
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                rows={4}
+                className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="px-6 h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+              disabled={isLoading}
+            >
               {isLoading ? "Creating..." : "Create Staff Member"}
             </Button>
           </div>
