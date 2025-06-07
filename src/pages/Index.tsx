@@ -142,14 +142,14 @@ const Index = () => {
             value={`${activeStaff}/${totalStaff}`}
             icon={Users}
             color="blue"
-            badge={{ text: `${totalStaff - activeStaff} offline`, variant: "secondary" }}
+            badge={{ text: `${totalStaff - activeStaff} offline`, variant: "default" }}
           />
           <MetricCard
             title="Pending Invoices"
             value={`$${pendingInvoices.toLocaleString()}`}
             icon={AlertTriangle}
             color="red"
-            badge={{ text: `${overdueInvoices} overdue`, variant: overdueInvoices > 0 ? "destructive" : "secondary" }}
+            badge={{ text: `${overdueInvoices} overdue`, variant: overdueInvoices > 0 ? "destructive" : "default" }}
           />
         </div>
 

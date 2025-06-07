@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,7 +58,7 @@ const JobScheduling = () => {
     completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0
   }))
 
-  // Transform staff data
+  // Transform staff data to match the correct interface
   const staffData = staff.map(member => ({
     name: member.name,
     status: member.status as "available" | "on-job" | "offline" | "break",

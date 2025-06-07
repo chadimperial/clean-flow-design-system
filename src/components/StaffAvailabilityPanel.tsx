@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 
 interface StaffMember {
   name: string
-  status: "available" | "busy" | "on-job" | "offline"
+  status: "available" | "on-job" | "offline" | "break"
   avatar: string
   currentLocation?: string
   nextJob?: string
@@ -24,8 +24,8 @@ export function StaffAvailabilityPanel({ staff }: StaffAvailabilityPanelProps) {
     switch (status) {
       case "available":
         return { color: "bg-green-500", text: "Available", textColor: "text-green-700" }
-      case "busy":
-        return { color: "bg-orange-500", text: "Partially Booked", textColor: "text-orange-700" }
+      case "break":
+        return { color: "bg-yellow-500", text: "On Break", textColor: "text-yellow-700" }
       case "on-job":
         return { color: "bg-blue-500", text: "On Job", textColor: "text-blue-700" }
       case "offline":

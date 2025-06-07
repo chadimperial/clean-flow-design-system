@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 interface StaffCardProps {
   name: string
   role: string
-  status: "online" | "offline" | "on-job"
+  status: "available" | "on-job" | "offline" | "break"
   location?: string
   phone: string
   rating: number
@@ -25,9 +25,10 @@ export function StaffCard({
   jobsToday 
 }: StaffCardProps) {
   const statusConfig = {
-    online: { color: "bg-success", text: "Available" },
+    available: { color: "bg-success", text: "Available" },
     offline: { color: "bg-gray-400", text: "Offline" },
-    "on-job": { color: "bg-orange-500", text: "On Job" }
+    "on-job": { color: "bg-orange-500", text: "On Job" },
+    break: { color: "bg-yellow-500", text: "On Break" }
   }
 
   return (
