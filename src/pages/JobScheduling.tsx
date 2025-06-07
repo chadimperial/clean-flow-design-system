@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -73,6 +74,10 @@ const JobScheduling = () => {
   const scheduledJobs = transformedJobs.filter(job => job.status === 'scheduled').length
   const inProgressJobs = transformedJobs.filter(job => job.status === 'in-progress').length
   const completedJobs = transformedJobs.filter(job => job.status === 'completed').length
+
+  const handleJobCreated = () => {
+    refetchJobs()
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -186,7 +191,7 @@ const JobScheduling = () => {
                 {currentView === "week" ? (
                   <WeekView jobs={transformedJobs} staff={staffData} />
                 ) : currentView === "day" ? (
-                  <DayView jobs={transformedJobs} />
+                  <DayView jobs={transformedJobs} onUpdate={refetchJobs} />
                 ) : (
                   <MonthView jobs={transformedJobs} />
                 )}
@@ -206,6 +211,7 @@ const JobScheduling = () => {
         <CreateJobModal 
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
+          onJobCreated={handleJobCreated}
         />
       )}
     </div>
@@ -258,11 +264,11 @@ const WeekView = ({ jobs, staff }: { jobs: any[], staff: any[] }) => {
 }
 
 // Day View Component  
-const DayView = ({ jobs }: { jobs: any[] }) => {
+const DayView = ({ jobs, onUpdate }: { jobs: any[], onUpdate: () => void }) => {
   return (
     <div className="p-6 space-y-4">
       {jobs.map(job => (
-        <JobCard key={job.id} {...job} expanded={true} />
+        <JobCard key={job.id} {...job} expanded={true} onUpdate={onUpdate} />
       ))}
     </div>
   )

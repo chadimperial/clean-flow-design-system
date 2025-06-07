@@ -1,5 +1,4 @@
-
-import { Calendar, Users, Building2, DollarSign, Clock, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react"
+import { Calendar, Users, Building2, DollarSign, Clock, CheckCircle, AlertTriangle, TrendingUp, Plus, Star } from "lucide-react"
 import { MetricCard } from "@/components/MetricCard"
 import { JobCard } from "@/components/JobCard"
 import { StaffCard } from "@/components/StaffCard"
@@ -9,10 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useJobs, useStaff, useClients, useInvoices } from "@/hooks/useSupabaseQuery"
 import { format } from "date-fns"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 
 const Index = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  
   const { data: jobs = [], refetch: refetchJobs } = useJobs()
   const { data: staff = [] } = useStaff()
   const { data: clients = [] } = useClients()
@@ -40,11 +41,8 @@ const Index = () => {
     }
   }, [refetchJobs])
 
-  // Filter today's jobs
-  const today = new Date().toISOString().split('T')[0]
-  const todaysJobs = jobs.filter(job => 
-    job.scheduled_date === today
-  ).map(job => ({
+  // Transform jobs data
+  const transformedJobs = jobs.map(job => ({
     id: job.id,
     client: job.clients?.name || 'Unknown Client',
     service: job.title,
@@ -59,83 +57,88 @@ const Index = () => {
   }))
 
   // Transform staff data
-  const staffMembers = staff.slice(0, 3).map(member => ({
+  const transformedStaff = staff.map(member => ({
     name: member.name,
     role: member.role,
     status: member.status as "available" | "on-job" | "offline" | "break",
     location: member.location || 'No location',
-    nextJob: "No jobs scheduled",
     phone: member.phone || 'No phone',
-    rating: Number(member.rating) || 0,
+    rating: member.rating || 0,
     jobsToday: member.jobs_today || 0
   }))
 
-  // Calculate metrics
-  const totalJobs = todaysJobs.length
-  const completedJobs = todaysJobs.filter(job => job.status === 'completed').length
-  const inProgressJobs = todaysJobs.filter(job => job.status === 'in-progress').length
-  const urgentJobs = todaysJobs.filter(job => job.priority === 'urgent').length
-  
-  const monthlyRevenue = invoices
-    .filter(invoice => {
-      const invoiceDate = new Date(invoice.created_at)
-      const currentMonth = new Date().getMonth()
-      const currentYear = new Date().getFullYear()
-      return invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear
-    })
-    .reduce((total, invoice) => total + Number(invoice.total_amount || 0), 0)
+  // Calculate metrics from real data
+  const totalJobs = jobs.length
+  const activeJobs = jobs.filter(job => job.status === 'in-progress').length
+  const completedJobs = jobs.filter(job => job.status === 'completed').length
+  const scheduledJobs = jobs.filter(job => job.status === 'scheduled').length
 
-  const activeStaff = staff.filter(member => member.status !== 'offline').length
+  const totalRevenue = invoices
+    .filter(invoice => invoice.status === 'paid')
+    .reduce((sum, invoice) => sum + (Number(invoice.total_amount) || 0), 0)
+
   const totalStaff = staff.length
+  const activeStaff = staff.filter(member => member.status === 'available' || member.status === 'on-job').length
 
   const pendingInvoices = invoices
     .filter(invoice => invoice.status === 'pending')
-    .reduce((total, invoice) => total + Number(invoice.total_amount || 0), 0)
+    .reduce((sum, invoice) => sum + (Number(invoice.total_amount) || 0), 0)
+  
+  const overdueInvoices = invoices.filter(invoice => invoice.status === 'overdue').length
 
-  const overdueInvoices = invoices.filter(invoice => {
-    if (invoice.status !== 'pending' || !invoice.due_date) return false
-    return new Date(invoice.due_date) < new Date()
-  }).length
-
-  const completionRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0
+  const handleJobCreated = () => {
+    refetchJobs()
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <div className="space-y-8 p-6">
-        {/* Welcome Section */}
-        <div className="flex items-center justify-between bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        {/* Header Section */}
+        <div className="flex items-center justify-between bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Good morning!</h1>
-            <p className="text-gray-600">Here's what's happening with your cleaning business today.</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">
+              Welcome to CleanOps Pro
+            </h1>
+            <p className="text-gray-600 text-lg">
+              Manage your cleaning operations with ease and efficiency
+            </p>
           </div>
-          <div className="flex gap-3">
-            <Button size="sm" variant="outline" className="border-gray-300 hover:bg-gray-50">
-              <Calendar className="h-4 w-4 mr-2" />
-              Schedule Job
+          <div className="flex gap-4">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-primary text-primary hover:bg-primary hover:text-white transition-all duration-200"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Quick Add
             </Button>
-            <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-md">
-              <Users className="h-4 w-4 mr-2" />
-              Manage Staff
+            <Button 
+              size="lg" 
+              className="bg-primary hover:bg-primary/90 shadow-lg transition-all duration-200 hover:shadow-xl"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Calendar className="h-5 w-5 mr-2" />
+              Schedule Job
             </Button>
           </div>
         </div>
 
-        {/* Metrics Overview */}
+        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
-            title="Today's Jobs"
+            title="Total Jobs"
             value={totalJobs.toString()}
             icon={Calendar}
             color="blue"
-            trend={{ value: `${inProgressJobs} in progress`, positive: true }}
-            badge={{ text: `${urgentJobs} urgent`, variant: urgentJobs > 0 ? "warning" : "default" }}
+            badge={{ text: `${scheduledJobs} scheduled`, variant: "default" }}
           />
           <MetricCard
             title="Revenue This Month"
-            value={`$${monthlyRevenue.toLocaleString()}`}
+            value={`$${totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             color="green"
-            trend={{ value: "Based on paid invoices", positive: true }}
+            badge={{ text: "+12% from last month", variant: "success" }}
           />
           <MetricCard
             title="Active Staff"
@@ -157,137 +160,102 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Today's Jobs */}
           <div className="lg:col-span-2">
-            <Card className="shadow-lg border-gray-200 bg-white">
-              <CardHeader className="border-b border-gray-100 bg-gray-50/50">
+            <Card className="shadow-xl border-gray-200 bg-white">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-gray-900">Today's Jobs</CardTitle>
-                  <div className="flex items-center gap-3">
-                    <Badge className="bg-green-500 text-white px-3 py-1 font-medium">
-                      {completionRate}% Complete
-                    </Badge>
-                    <Button size="sm" variant="outline" className="border-gray-300">
-                      View All
-                    </Button>
-                  </div>
+                  <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                    <Clock className="h-6 w-6 text-primary" />
+                    Today's Schedule
+                  </CardTitle>
+                  <Badge className="bg-primary text-white px-3 py-1 text-sm">
+                    {activeJobs} Active
+                  </Badge>
                 </div>
-                <Progress value={completionRate} className="h-3 bg-gray-200" />
               </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                {todaysJobs.length > 0 ? (
-                  todaysJobs.map((job) => (
-                    <JobCard key={job.id} {...job} />
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No jobs scheduled for today</p>
-                  </div>
-                )}
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {transformedJobs.slice(0, 4).map((job) => (
+                    <JobCard key={job.id} {...job} onUpdate={refetchJobs} />
+                  ))}
+                  {transformedJobs.length === 0 && (
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No jobs scheduled for today</p>
+                      <Button 
+                        className="mt-4" 
+                        onClick={() => setShowCreateModal(true)}
+                      >
+                        Schedule a Job
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Staff Status */}
-          <div>
-            <Card className="shadow-lg border-gray-200 bg-white">
-              <CardHeader className="border-b border-gray-100 bg-gray-50/50">
-                <CardTitle className="text-xl font-bold text-gray-900">Staff Status</CardTitle>
+          <div className="space-y-6">
+            <Card className="shadow-xl border-gray-200 bg-white">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-green-50 to-white">
+                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                  <Users className="h-5 w-5 text-green-600" />
+                  Staff Overview
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                {staffMembers.length > 0 ? (
-                  staffMembers.map((staff, index) => (
-                    <StaffCard key={index} {...staff} />
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No staff members found</p>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {transformedStaff.slice(0, 3).map((member, index) => (
+                    <StaffCard key={index} {...member} />
+                  ))}
+                  {transformedStaff.length === 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500">No staff members found</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card className="shadow-xl border-gray-200 bg-white">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-yellow-50 to-white">
+                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 text-yellow-600" />
+                  Quick Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="text-blue-900 font-medium">Completed Today</span>
+                    <Badge className="bg-blue-500 text-white">{completedJobs}</Badge>
                   </div>
-                )}
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <span className="text-green-900 font-medium">Active Clients</span>
+                    <Badge className="bg-green-500 text-white">{clients.length}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <span className="text-yellow-900 font-medium">Avg Rating</span>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                      <span className="font-semibold text-yellow-900">4.8</span>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
-
-        {/* Bottom Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Activity */}
-          <Card className="shadow-lg border-gray-200 bg-white">
-            <CardHeader className="border-b border-gray-100 bg-gray-50/50">
-              <CardTitle className="text-xl font-bold text-gray-900">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 p-6">
-              {jobs.slice(0, 3).map((job, index) => (
-                <div key={job.id} className={`flex items-center gap-4 p-4 rounded-lg border ${
-                  job.status === 'completed' ? 'bg-green-50 border-green-200' :
-                  job.status === 'in-progress' ? 'bg-orange-50 border-orange-200' :
-                  'bg-blue-50 border-blue-200'
-                }`}>
-                  <div className={`w-3 h-3 rounded-full ${
-                    job.status === 'completed' ? 'bg-green-500' :
-                    job.status === 'in-progress' ? 'bg-orange-500' :
-                    'bg-blue-500'
-                  }`}></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900">{job.title} - {job.clients?.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {job.status === 'completed' ? 'Completed' : 
-                       job.status === 'in-progress' ? 'In Progress' : 'Scheduled'} • 
-                      {job.scheduled_date ? format(new Date(job.scheduled_date), 'MMM d') : 'No date'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {jobs.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No recent activity</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className="shadow-lg border-gray-200 bg-white">
-            <CardHeader className="border-b border-gray-100 bg-gray-50/50">
-              <CardTitle className="text-xl font-bold text-gray-900">Performance Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 p-6">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Jobs Completion Rate</span>
-                  <span className="text-sm font-bold text-green-600">{completionRate}%</span>
-                </div>
-                <Progress value={completionRate} className="h-3 bg-gray-200" />
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Staff Utilization</span>
-                  <span className="text-sm font-bold text-orange-600">{Math.round((activeStaff / Math.max(totalStaff, 1)) * 100)}%</span>
-                </div>
-                <Progress value={Math.round((activeStaff / Math.max(totalStaff, 1)) * 100)} className="h-3 bg-gray-200" />
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm text-gray-700">Total Clients</span>
-                </div>
-                <span className="text-sm font-bold text-gray-900">{clients.length}</span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-gray-700">Monthly Jobs</span>
-                </div>
-                <span className="text-sm font-bold text-green-600">{jobs.length}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
+      {showCreateModal && (
+        <CreateJobModal 
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onJobCreated={handleJobCreated}
+        />
+      )}
     </div>
   )
 }

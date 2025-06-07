@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { X, Calendar, Clock, MapPin, User, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -7,14 +6,19 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 interface CreateJobModalProps {
   isOpen: boolean
   onClose: () => void
+  onJobCreated?: () => void
 }
 
-export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
+export function CreateJobModal({ isOpen, onClose, onJobCreated }: CreateJobModalProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     client: "",
     service: "",
@@ -30,10 +34,10 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
   if (!isOpen) return null
 
   const serviceTypes = [
-    { id: "office", name: "Office Cleaning", icon: "🏢", duration: "2-4 hours" },
+    { id: "office-cleaning", name: "Office Cleaning", icon: "🏢", duration: "2-4 hours" },
     { id: "residential", name: "Residential", icon: "🏠", duration: "1-3 hours" },
-    { id: "medical", name: "Medical Facility", icon: "🏥", duration: "3-6 hours" },
-    { id: "restaurant", name: "Restaurant", icon: "🍽️", duration: "2-5 hours" }
+    { id: "medical-cleaning", name: "Medical Facility", icon: "🏥", duration: "3-6 hours" },
+    { id: "restaurant-cleaning", name: "Restaurant", icon: "🍽️", duration: "2-5 hours" }
   ]
 
   const availableStaff = [
@@ -49,6 +53,119 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
     { id: "chemicals", name: "Cleaning Chemicals", available: 12 },
     { id: "gloves", name: "Protective Gloves", available: 20 }
   ]
+
+  const handleCreateJob = async () => {
+    if (!formData.client || !formData.service || !formData.date || !formData.time || !formData.address) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    
+    try {
+      // First create or get the client
+      let clientId = null
+      
+      // Check if client already exists
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('name', formData.client)
+        .single()
+
+      if (existingClient) {
+        clientId = existingClient.id
+      } else {
+        // Create new client
+        const { data: newClient, error: clientError } = await supabase
+          .from('clients')
+          .insert({
+            name: formData.client,
+            address: formData.address
+          })
+          .select('id')
+          .single()
+
+        if (clientError) throw clientError
+        clientId = newClient.id
+      }
+
+      // Create the job
+      const selectedServiceType = serviceTypes.find(s => s.id === formData.service)
+      
+      const { data: job, error: jobError } = await supabase
+        .from('jobs')
+        .insert({
+          client_id: clientId,
+          title: selectedServiceType?.name || 'Cleaning Service',
+          service_type: formData.service,
+          location: formData.address,
+          scheduled_date: formData.date,
+          scheduled_time: formData.time,
+          estimated_duration: parseInt(formData.duration) || 2,
+          special_instructions: formData.notes,
+          status: 'scheduled',
+          priority: 'normal'
+        })
+        .select('id')
+        .single()
+
+      if (jobError) throw jobError
+
+      // Assign staff to the job
+      if (formData.staff.length > 0) {
+        const staffAssignments = formData.staff.map(staffId => ({
+          job_id: job.id,
+          staff_id: staffId
+        }))
+
+        const { error: staffError } = await supabase
+          .from('job_staff')
+          .insert(staffAssignments)
+
+        if (staffError) throw staffError
+      }
+
+      toast({
+        title: "Success",
+        description: "Job created successfully!",
+      })
+
+      // Reset form
+      setFormData({
+        client: "",
+        service: "",
+        date: "",
+        time: "",
+        duration: "",
+        address: "",
+        staff: [],
+        equipment: [],
+        notes: ""
+      })
+      setCurrentStep(1)
+      
+      // Call the callback to refresh data
+      if (onJobCreated) {
+        onJobCreated()
+      }
+      
+      onClose()
+    } catch (error) {
+      console.error('Error creating job:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create job. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -87,7 +204,7 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="client">Client</Label>
+                  <Label htmlFor="client">Client *</Label>
                   <Input
                     id="client"
                     placeholder="Search or add new client..."
@@ -96,7 +213,7 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">Address *</Label>
                   <Input
                     id="address"
                     placeholder="Job location address..."
@@ -107,7 +224,7 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
               </div>
 
               <div>
-                <Label>Service Type</Label>
+                <Label>Service Type *</Label>
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   {serviceTypes.map((service) => (
                     <Card 
@@ -129,7 +246,7 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="date">Date *</Label>
                   <Input
                     id="date"
                     type="date"
@@ -138,7 +255,7 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="time">Start Time</Label>
+                  <Label htmlFor="time">Start Time *</Label>
                   <Input
                     id="time"
                     type="time"
@@ -256,10 +373,11 @@ export function CreateJobModal({ isOpen, onClose }: CreateJobModalProps) {
           </Button>
           
           <Button 
-            onClick={() => currentStep < 3 ? setCurrentStep(currentStep + 1) : onClose()}
+            onClick={() => currentStep < 3 ? setCurrentStep(currentStep + 1) : handleCreateJob()}
             className="bg-primary hover:bg-primary/90"
+            disabled={isLoading}
           >
-            {currentStep < 3 ? "Next" : "Create Job"}
+            {isLoading ? "Creating..." : currentStep < 3 ? "Next" : "Create Job"}
           </Button>
         </div>
       </div>

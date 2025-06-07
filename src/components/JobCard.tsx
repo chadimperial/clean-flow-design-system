@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
+import { useState } from "react"
 
 interface JobCardProps {
   id: string
@@ -19,6 +22,7 @@ interface JobCardProps {
   duration?: number
   completionPercentage?: number
   expanded?: boolean
+  onUpdate?: () => void
 }
 
 export function JobCard({ 
@@ -33,8 +37,12 @@ export function JobCard({
   serviceType,
   duration,
   completionPercentage = 0,
-  expanded = false
+  expanded = false,
+  onUpdate
 }: JobCardProps) {
+  const { toast } = useToast()
+  const [isUpdating, setIsUpdating] = useState(false)
+
   const statusConfig = {
     scheduled: { color: "bg-blue-500", text: "Scheduled", bgColor: "bg-blue-50", borderColor: "border-blue-500" },
     "in-progress": { color: "bg-orange-500", text: "In Progress", bgColor: "bg-orange-50", borderColor: "border-orange-500" },
@@ -60,6 +68,118 @@ export function JobCard({
       case "residential": return "🏠"
       default: return "🧹"
     }
+  }
+
+  const handleStatusUpdate = async () => {
+    setIsUpdating(true)
+    
+    try {
+      let newStatus = status
+      
+      if (status === "scheduled") {
+        newStatus = "in-progress"
+      } else if (status === "in-progress") {
+        newStatus = "completed"
+      }
+
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: newStatus })
+        .eq('id', id)
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: `Job ${newStatus === "in-progress" ? "started" : "completed"} successfully!`,
+      })
+
+      if (onUpdate) {
+        onUpdate()
+      }
+    } catch (error) {
+      console.error('Error updating job status:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update job status. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleEdit = () => {
+    toast({
+      title: "Edit Job",
+      description: "Edit functionality will be available soon.",
+    })
+  }
+
+  const handleClone = async () => {
+    try {
+      // Get the original job data
+      const { data: originalJob, error: fetchError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Create a clone with a new title
+      const { error: cloneError } = await supabase
+        .from('jobs')
+        .insert({
+          ...originalJob,
+          id: undefined,
+          title: `${originalJob.title} (Copy)`,
+          status: 'scheduled',
+          scheduled_date: null,
+          scheduled_time: null,
+          created_at: undefined,
+          updated_at: undefined
+        })
+
+      if (cloneError) throw cloneError
+
+      toast({
+        title: "Success",
+        description: "Job cloned successfully!",
+      })
+
+      if (onUpdate) {
+        onUpdate()
+      }
+    } catch (error) {
+      console.error('Error cloning job:', error)
+      toast({
+        title: "Error",
+        description: "Failed to clone job. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDirections = () => {
+    if (address) {
+      const encodedAddress = encodeURIComponent(address)
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`
+      window.open(googleMapsUrl, '_blank')
+    } else {
+      toast({
+        title: "No Address",
+        description: "No address available for this job.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleClientContact = () => {
+    toast({
+      title: "Contact Client",
+      description: "Client contact functionality will be available soon.",
+    })
   }
 
   return (
@@ -147,10 +267,10 @@ export function JobCard({
                 <p className="text-sm text-gray-600">Main contact person</p>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleClientContact}>
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleClientContact}>
                   <MessageCircle className="h-4 w-4" />
                 </Button>
               </div>
@@ -181,24 +301,31 @@ export function JobCard({
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-8 px-3 text-xs">
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={handleEdit}>
               <Edit className="h-3 w-3 mr-1" />
               Edit
             </Button>
-            <Button size="sm" variant="outline" className="h-8 px-3 text-xs">
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={handleClone}>
               <Copy className="h-3 w-3 mr-1" />
               Clone
             </Button>
-            <Button size="sm" variant="outline" className="h-8 px-3 text-xs">
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={handleDirections}>
               <Navigation className="h-3 w-3 mr-1" />
               Directions
             </Button>
           </div>
           
           {status !== "completed" && status !== "cancelled" && (
-            <Button size="sm" className="h-8 px-3 text-xs bg-primary hover:bg-primary/90">
+            <Button 
+              size="sm" 
+              className="h-8 px-3 text-xs bg-primary hover:bg-primary/90"
+              onClick={handleStatusUpdate}
+              disabled={isUpdating}
+            >
               <StatusIcon className="h-3 w-3 mr-1" />
-              {status === "scheduled" ? "Start" : status === "in-progress" ? "Complete" : "Update"}
+              {isUpdating ? "Updating..." : 
+               status === "scheduled" ? "Start" : 
+               status === "in-progress" ? "Complete" : "Update"}
             </Button>
           )}
         </div>
