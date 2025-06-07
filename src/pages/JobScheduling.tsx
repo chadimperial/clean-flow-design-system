@@ -1,4 +1,5 @@
-import { useState } from "react"
+
+import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,60 +10,70 @@ import { JobCard } from "@/components/JobCard"
 import { StaffAvailabilityPanel } from "@/components/StaffAvailabilityPanel"
 import { JobAnalytics } from "@/components/JobAnalytics"
 import { CreateJobModal } from "@/components/CreateJobModal"
+import { useJobs, useStaff } from "@/hooks/useSupabaseQuery"
+import { supabase } from "@/integrations/supabase/client"
+import { format } from "date-fns"
 
 const JobScheduling = () => {
   const [currentView, setCurrentView] = useState<"week" | "day" | "month">("week")
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showCreateModal, setShowCreateModal] = useState(false)
+  
+  const { data: jobs = [], refetch: refetchJobs } = useJobs()
+  const { data: staff = [] } = useStaff()
 
-  const todaysJobs = [
-    {
-      id: "1",
-      client: "Sunshine Office Complex",
-      service: "Deep Clean",
-      time: "9:00 AM - 12:00 PM",
-      address: "123 Business Park, Downtown",
-      staff: ["John Smith", "Maria Garcia"],
-      status: "scheduled" as const,
-      priority: "normal" as const,
-      serviceType: "office-cleaning",
-      duration: 180,
-      completionPercentage: 0
-    },
-    {
-      id: "2", 
-      client: "Metro Hospital",
-      service: "Medical Cleaning", 
-      time: "8:00 AM - 10:00 AM",
-      address: "456 Health Plaza",
-      staff: ["David Chen"],
-      status: "in-progress" as const,
-      priority: "urgent" as const,
-      serviceType: "medical-cleaning",
-      duration: 120,
-      completionPercentage: 65
-    },
-    {
-      id: "3",
-      client: "Riverside Restaurant", 
-      service: "Kitchen Deep Clean",
-      time: "6:00 AM - 8:00 AM", 
-      address: "789 Waterfront St",
-      staff: ["Sarah Wilson", "Mike Johnson"],
-      status: "completed" as const,
-      priority: "normal" as const,
-      serviceType: "restaurant-cleaning",
-      duration: 120,
-      completionPercentage: 100
+  // Set up real-time subscription for jobs
+  useEffect(() => {
+    const channel = supabase
+      .channel('jobs-changes-scheduling')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs'
+        },
+        () => {
+          refetchJobs()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
-  ]
+  }, [refetchJobs])
 
-  const staffData = [
-    { name: "Sarah Johnson", status: "available" as const, avatar: "SJ", currentLocation: "Downtown Office", nextJob: "2:00 PM - Office Complex", phone: "+1-555-0123", jobsToday: 3 },
-    { name: "Mike Chen", status: "on-job" as const, avatar: "MC", currentLocation: "Residential Area", nextJob: "3:30 PM - Apartment Clean", phone: "+1-555-0124", jobsToday: 4 },
-    { name: "Emma Wilson", status: "busy" as const, avatar: "EW", currentLocation: "Business District", nextJob: "4:00 PM - Deep Clean", phone: "+1-555-0125", jobsToday: 2 },
-    { name: "David Rodriguez", status: "offline" as const, avatar: "DR", currentLocation: "Off Duty", phone: "+1-555-0126", jobsToday: 0 }
-  ]
+  // Transform jobs data
+  const transformedJobs = jobs.map(job => ({
+    id: job.id,
+    client: job.clients?.name || 'Unknown Client',
+    service: job.title,
+    time: job.scheduled_time ? format(new Date(`2000-01-01T${job.scheduled_time}`), 'h:mm a') : 'No time set',
+    address: job.location || 'No address',
+    staff: job.job_staff?.map(js => js.staff?.name).filter(Boolean) || [],
+    status: job.status as "scheduled" | "in-progress" | "completed",
+    priority: job.priority as "low" | "normal" | "high" | "urgent",
+    serviceType: job.service_type,
+    duration: job.estimated_duration || 0,
+    completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0
+  }))
+
+  // Transform staff data
+  const staffData = staff.map(member => ({
+    name: member.name,
+    status: member.status as "available" | "on-job" | "offline" | "break",
+    avatar: member.name.split(' ').map(n => n[0]).join(''),
+    currentLocation: member.location || 'No location',
+    nextJob: "No scheduled jobs",
+    phone: member.phone || 'No phone',
+    jobsToday: member.jobs_today || 0
+  }))
+
+  // Calculate stats
+  const scheduledJobs = transformedJobs.filter(job => job.status === 'scheduled').length
+  const inProgressJobs = transformedJobs.filter(job => job.status === 'in-progress').length
+  const completedJobs = transformedJobs.filter(job => job.status === 'completed').length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -166,19 +177,19 @@ const JobScheduling = () => {
                      currentView === "day" ? "Daily Schedule" : "Monthly Overview"}
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-500 text-white">12 Scheduled</Badge>
-                    <Badge className="bg-orange-500 text-white">3 In Progress</Badge>
-                    <Badge className="bg-green-500 text-white">8 Completed</Badge>
+                    <Badge className="bg-blue-500 text-white">{scheduledJobs} Scheduled</Badge>
+                    <Badge className="bg-orange-500 text-white">{inProgressJobs} In Progress</Badge>
+                    <Badge className="bg-green-500 text-white">{completedJobs} Completed</Badge>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 {currentView === "week" ? (
-                  <WeekView jobs={todaysJobs} staff={staffData} />
+                  <WeekView jobs={transformedJobs} staff={staffData} />
                 ) : currentView === "day" ? (
-                  <DayView jobs={todaysJobs} />
+                  <DayView jobs={transformedJobs} />
                 ) : (
-                  <MonthView jobs={todaysJobs} />
+                  <MonthView jobs={transformedJobs} />
                 )}
               </CardContent>
             </Card>
