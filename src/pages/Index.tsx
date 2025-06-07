@@ -58,12 +58,13 @@ const Index = () => {
     completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0
   }))
 
-  // Transform staff data
+  // Transform staff data with correct status mapping
   const transformedStaff = staff.map(member => ({
     name: member.name,
     role: member.role,
-    status: member.status === 'available' ? 'online' as const : 
-           member.status === 'on-job' ? 'on-job' as const : 'offline' as const,
+    status: member.status === 'available' ? 'available' as const : 
+           member.status === 'on-job' ? 'on-job' as const : 
+           member.status === 'offline' ? 'offline' as const : 'offline' as const,
     location: member.location || 'No location',
     phone: member.phone || 'No phone',
     rating: member.rating || 0,
