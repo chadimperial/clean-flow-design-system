@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { X, Calendar, Clock, MapPin, User, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { useStaff } from "@/hooks/useSupabaseQuery"
 
 interface CreateJobModalProps {
   isOpen: boolean
@@ -19,6 +21,8 @@ export function CreateJobModal({ isOpen, onClose, onJobCreated }: CreateJobModal
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { data: staffData = [] } = useStaff()
+  
   const [formData, setFormData] = useState({
     client: "",
     service: "",
@@ -40,12 +44,12 @@ export function CreateJobModal({ isOpen, onClose, onJobCreated }: CreateJobModal
     { id: "restaurant-cleaning", name: "Restaurant", icon: "🍽️", duration: "2-5 hours" }
   ]
 
-  const availableStaff = [
-    { id: "1", name: "John Smith", status: "available", skills: ["office", "residential"] },
-    { id: "2", name: "Maria Garcia", status: "available", skills: ["medical", "office"] },
-    { id: "3", name: "David Chen", status: "busy", skills: ["medical"] },
-    { id: "4", name: "Sarah Wilson", status: "available", skills: ["restaurant", "residential"] }
-  ]
+  const availableStaff = staffData.map(staff => ({
+    id: staff.id,
+    name: staff.name,
+    status: staff.status || "available",
+    skills: ["cleaning"] // Default skills since we don't have this field in the database yet
+  }))
 
   const equipment = [
     { id: "vacuum", name: "Industrial Vacuum", available: 5 },

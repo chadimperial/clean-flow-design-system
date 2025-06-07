@@ -16,8 +16,8 @@ interface JobCardProps {
   time: string
   address: string
   staff: string[]
-  status: "scheduled" | "in-progress" | "completed" | "overdue" | "cancelled"
-  priority?: "low" | "normal" | "high" | "urgent"
+  status: "scheduled" | "in-progress" | "completed" | "cancelled"
+  priority?: "normal" | "urgent" | "vip"
   serviceType?: string
   duration?: number
   completionPercentage?: number
@@ -47,15 +47,13 @@ export function JobCard({
     scheduled: { color: "bg-blue-500", text: "Scheduled", bgColor: "bg-blue-50", borderColor: "border-blue-500" },
     "in-progress": { color: "bg-orange-500", text: "In Progress", bgColor: "bg-orange-50", borderColor: "border-orange-500" },
     completed: { color: "bg-green-500", text: "Completed", bgColor: "bg-green-50", borderColor: "border-green-500" },
-    overdue: { color: "bg-red-500", text: "Overdue", bgColor: "bg-red-50", borderColor: "border-red-500" },
     cancelled: { color: "bg-gray-500", text: "Cancelled", bgColor: "bg-gray-50", borderColor: "border-gray-500" }
   }
 
   const priorityConfig = {
     urgent: "border-l-4 border-l-red-500",
-    high: "border-l-4 border-l-orange-500",
-    normal: "",
-    low: "border-l-4 border-l-gray-300"
+    vip: "border-l-4 border-l-purple-500",
+    normal: ""
   }
 
   const StatusIcon = status === "completed" ? CheckCircle : Circle
@@ -197,8 +195,8 @@ export function JobCard({
             {priority === "urgent" && (
               <Badge className="bg-red-500 text-white text-xs">URGENT</Badge>
             )}
-            {priority === "high" && (
-              <Badge className="bg-orange-500 text-white text-xs">HIGH</Badge>
+            {priority === "vip" && (
+              <Badge className="bg-purple-500 text-white text-xs">VIP</Badge>
             )}
             <Badge className={`${statusConfig[status].color} text-white`}>
               {statusConfig[status].text}

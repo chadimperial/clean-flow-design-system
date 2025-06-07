@@ -20,6 +20,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 interface CreateStaffModalProps {
   open: boolean
@@ -27,38 +29,82 @@ interface CreateStaffModalProps {
 }
 
 export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) {
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
     role: "",
-    department: "",
-    startDate: "",
     hourlyRate: "",
     notes: ""
   })
+  
   const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Creating staff member:", { ...formData, skills })
-    // Here you would typically send the data to your backend
-    onOpenChange(false)
-    // Reset form
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      role: "",
-      department: "",
-      startDate: "",
-      hourlyRate: "",
-      notes: ""
-    })
-    setSkills([])
+    
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.role) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`
+      
+      const { error } = await supabase
+        .from('staff')
+        .insert({
+          name: fullName,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          hourly_rate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
+          status: 'available',
+          rating: 0.0,
+          jobs_today: 0
+        })
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: "Staff member created successfully!",
+      })
+
+      // Reset form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        role: "",
+        hourlyRate: "",
+        notes: ""
+      })
+      setSkills([])
+      
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Error creating staff member:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create staff member. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const addSkill = () => {
@@ -88,7 +134,7 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
             <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
@@ -97,7 +143,7 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName}
@@ -109,7 +155,7 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -119,7 +165,7 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -136,46 +182,19 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
             <h3 className="text-lg font-medium text-gray-900">Employment Details</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role">Role *</Label>
                 <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="team-leader">Team Leader</SelectItem>
-                    <SelectItem value="senior-cleaner">Senior Cleaner</SelectItem>
-                    <SelectItem value="cleaner">Cleaner</SelectItem>
-                    <SelectItem value="junior-cleaner">Junior Cleaner</SelectItem>
-                    <SelectItem value="specialist">Specialist Cleaner</SelectItem>
+                    <SelectItem value="Team Leader">Team Leader</SelectItem>
+                    <SelectItem value="Senior Cleaner">Senior Cleaner</SelectItem>
+                    <SelectItem value="Cleaner">Cleaner</SelectItem>
+                    <SelectItem value="Junior Cleaner">Junior Cleaner</SelectItem>
+                    <SelectItem value="Specialist Cleaner">Specialist Cleaner</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="residential">Residential Cleaning</SelectItem>
-                    <SelectItem value="commercial">Commercial Cleaning</SelectItem>
-                    <SelectItem value="deep-clean">Deep Cleaning</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                  required
-                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
@@ -185,7 +204,7 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
                   step="0.01"
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
-                  required
+                  placeholder="15.00"
                 />
               </div>
             </div>
@@ -241,8 +260,8 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-              Create Staff Member
+            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Staff Member"}
             </Button>
           </div>
         </form>

@@ -1,3 +1,4 @@
+
 import { Calendar, Users, Building2, DollarSign, Clock, CheckCircle, AlertTriangle, TrendingUp, Plus, Star } from "lucide-react"
 import { MetricCard } from "@/components/MetricCard"
 import { JobCard } from "@/components/JobCard"
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { CreateJobModal } from "@/components/CreateJobModal"
 import { useJobs, useStaff, useClients, useInvoices } from "@/hooks/useSupabaseQuery"
 import { format } from "date-fns"
 import { useEffect, useState } from "react"
@@ -49,8 +51,8 @@ const Index = () => {
     time: job.scheduled_time ? format(new Date(`2000-01-01T${job.scheduled_time}`), 'h:mm a') : 'No time set',
     address: job.location || 'No address',
     staff: job.job_staff?.map(js => js.staff?.name).filter(Boolean) || [],
-    status: job.status as "scheduled" | "in-progress" | "completed",
-    priority: job.priority as "low" | "normal" | "high" | "urgent",
+    status: job.status as "scheduled" | "in-progress" | "completed" | "cancelled",
+    priority: job.priority as "normal" | "urgent" | "vip",
     serviceType: job.service_type,
     duration: job.estimated_duration || 0,
     completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0
@@ -60,7 +62,8 @@ const Index = () => {
   const transformedStaff = staff.map(member => ({
     name: member.name,
     role: member.role,
-    status: member.status as "available" | "on-job" | "offline" | "break",
+    status: member.status === 'available' ? 'online' as const : 
+           member.status === 'on-job' ? 'on-job' as const : 'offline' as const,
     location: member.location || 'No location',
     phone: member.phone || 'No phone',
     rating: member.rating || 0,
