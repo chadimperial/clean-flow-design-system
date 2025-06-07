@@ -1,5 +1,5 @@
 
-import { Search, Bell, Settings, User, Plus } from "lucide-react"
+import { Search, Bell, Settings, User, Plus, LogOut } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,10 +16,34 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CreateJobModal } from "@/components/CreateJobModal"
 import { CreateClientModal } from "@/components/CreateClientModal"
+import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/hooks/use-toast"
 
 export function TopNavigation() {
   const [showCreateJobModal, setShowCreateJobModal] = useState(false)
   const [showCreateClientModal, setShowCreateClientModal] = useState(false)
+  const { user, signOut } = useAuth()
+  const { toast } = useToast()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error signing out",
+        description: "There was a problem signing you out.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const userInitials = user?.user_metadata?.full_name 
+    ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+    : user?.email?.substring(0, 2).toUpperCase() || 'U'
 
   return (
     <>
@@ -68,7 +92,7 @@ export function TopNavigation() {
                 <Avatar className="h-8 w-8 ring-2 ring-gray-200">
                   <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
-                    JD
+                    {userInitials}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -76,9 +100,11 @@ export function TopNavigation() {
             <DropdownMenuContent className="w-56 bg-white shadow-lg border border-gray-200" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none text-gray-900">John Doe</p>
+                  <p className="text-sm font-medium leading-none text-gray-900">
+                    {user?.user_metadata?.full_name || 'User'}
+                  </p>
                   <p className="text-xs leading-none text-gray-500">
-                    john@cleanflow.com
+                    {user?.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -92,7 +118,8 @@ export function TopNavigation() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="hover:bg-gray-50">
+              <DropdownMenuItem className="hover:bg-gray-50" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

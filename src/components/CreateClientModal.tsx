@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateClientModalProps {
   open: boolean;
@@ -32,27 +34,63 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
     contractValue: '',
     notes: ''
   });
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Creating client:', formData);
-    onOpenChange(false);
-    // Reset form
-    setFormData({
-      companyName: '',
-      industry: '',
-      contactPerson: '',
-      contactTitle: '',
-      phone: '',
-      email: '',
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      serviceType: '',
-      contractValue: '',
-      notes: ''
-    });
+    setLoading(true);
+
+    try {
+      const fullAddress = `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`.trim();
+      
+      const { error } = await supabase
+        .from('clients')
+        .insert([
+          {
+            name: formData.companyName,
+            email: formData.email,
+            phone: formData.phone,
+            address: fullAddress,
+            company: formData.companyName,
+            contact_person: formData.contactPerson,
+            notes: `Industry: ${formData.industry}\nContact Title: ${formData.contactTitle}\nService Type: ${formData.serviceType}\nContract Value: ${formData.contractValue}\n\nNotes: ${formData.notes}`.trim()
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Client created successfully",
+        description: `${formData.companyName} has been added to your client list.`,
+      });
+
+      onOpenChange(false);
+      // Reset form
+      setFormData({
+        companyName: '',
+        industry: '',
+        contactPerson: '',
+        contactTitle: '',
+        phone: '',
+        email: '',
+        address: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        serviceType: '',
+        contractValue: '',
+        notes: ''
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error creating client",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -275,8 +313,8 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
-              Create Client
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Client'}
             </Button>
           </div>
         </form>

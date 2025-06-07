@@ -8,6 +8,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavigation } from "@/components/TopNavigation";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import JobScheduling from "./pages/JobScheduling";
 import StaffManagement from "./pages/StaffManagement";
@@ -16,6 +18,7 @@ import ClientCRM from "./pages/ClientCRM";
 import FinancePayroll from "./pages/FinancePayroll";
 import InventoryEquipment from "./pages/InventoryEquipment";
 import Reports from "./pages/Reports";
+import Auth from "./pages/Auth";
 
 // Create QueryClient outside of component to avoid recreation on each render
 const queryClient = new QueryClient({
@@ -34,27 +37,36 @@ const App: React.FC = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SidebarProvider>
-            <div className="min-h-screen flex w-full bg-background">
-              <AppSidebar />
-              <div className="flex-1 flex flex-col">
-                <TopNavigation />
-                <main className="flex-1 overflow-auto">
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/scheduling" element={<JobScheduling />} />
-                    <Route path="/staff" element={<StaffManagement />} />
-                    <Route path="/clients" element={<ClientCRM />} />
-                    <Route path="/finance" element={<FinancePayroll />} />
-                    <Route path="/inventory" element={<InventoryEquipment />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings (Coming Soon)</h1></div>} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-              </div>
-            </div>
-          </SidebarProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="min-h-screen flex w-full bg-background">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <TopNavigation />
+                        <main className="flex-1 overflow-auto">
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/scheduling" element={<JobScheduling />} />
+                            <Route path="/staff" element={<StaffManagement />} />
+                            <Route path="/clients" element={<ClientCRM />} />
+                            <Route path="/finance" element={<FinancePayroll />} />
+                            <Route path="/inventory" element={<InventoryEquipment />} />
+                            <Route path="/reports" element={<Reports />} />
+                            <Route path="/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings (Coming Soon)</h1></div>} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
