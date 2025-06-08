@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,9 +25,10 @@ import { useToast } from "@/hooks/use-toast"
 interface CreateStaffModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onStaffCreated?: () => void
 }
 
-export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) {
+export function CreateStaffModal({ open, onOpenChange, onStaffCreated }: CreateStaffModalProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   
@@ -144,6 +144,11 @@ export function CreateStaffModal({ open, onOpenChange }: CreateStaffModalProps) 
         notes: ""
       })
       setSkills([])
+      
+      // Call the callback to refresh data in parent component
+      if (onStaffCreated) {
+        onStaffCreated()
+      }
       
       onOpenChange(false)
     } catch (error) {
