@@ -53,6 +53,42 @@ export const useStaff = () => {
   });
 };
 
+export const useStaffPerformance = () => {
+  return useQuery({
+    queryKey: ['staff-performance'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('staff_performance')
+        .select(`
+          *,
+          staff(name, role, email)
+        `)
+        .order('performance_date', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const useStaffSchedules = () => {
+  return useQuery({
+    queryKey: ['staff-schedules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('staff_schedules')
+        .select(`
+          *,
+          staff(name, role, email, status)
+        `)
+        .order('schedule_date', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
 export const useInvoices = () => {
   return useQuery({
     queryKey: ['invoices'],

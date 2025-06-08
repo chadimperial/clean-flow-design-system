@@ -38,13 +38,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { StaffCard } from "@/components/StaffCard"
 import { StaffPerformanceChart } from "@/components/StaffPerformanceChart"
+import { StaffSchedulingPage } from "@/components/StaffSchedulingPage"
 import { CreateStaffModal } from "@/components/CreateStaffModal"
+import { StaffProfileModal } from "@/components/StaffProfileModal"
 import { useStaff } from "@/hooks/useSupabaseQuery"
 
 export default function StaffManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedFilter, setSelectedFilter] = useState("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [showProfileModal, setShowProfileModal] = useState(false)
   
   // Use real data from Supabase
   const { data: staff = [], refetch: refetchStaff } = useStaff()
@@ -111,6 +115,16 @@ export default function StaffManagement() {
   const handleStaffCreated = () => {
     refetchStaff()
     setShowCreateModal(false)
+  }
+
+  const handleViewProfile = (staffMember: any) => {
+    setSelectedStaff(staffMember)
+    setShowProfileModal(true)
+  }
+
+  const handleEditDetails = (staffMember: any) => {
+    setSelectedStaff(staffMember)
+    setShowProfileModal(true)
   }
 
   return (
@@ -289,11 +303,11 @@ export default function StaffManagement() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewProfile(staffMember)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditDetails(staffMember)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Details
                               </DropdownMenuItem>
@@ -371,14 +385,7 @@ export default function StaffManagement() {
         </TabsContent>
 
         <TabsContent value="scheduling" className="space-y-6">
-          <Card className="bg-white shadow-sm border border-gray-200">
-            <CardHeader>
-              <CardTitle>Staff Scheduling (Coming Soon)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Advanced scheduling features will be available here including shift management, availability tracking, and automated scheduling.</p>
-            </CardContent>
-          </Card>
+          <StaffSchedulingPage />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
@@ -396,6 +403,14 @@ export default function StaffManagement() {
       <CreateStaffModal 
         open={showCreateModal} 
         onOpenChange={setShowCreateModal}
+        onStaffCreated={handleStaffCreated}
+      />
+
+      <StaffProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        staffMember={selectedStaff}
+        onUpdate={refetchStaff}
       />
     </div>
   )

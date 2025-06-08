@@ -234,6 +234,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_job_staff_job_id"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_job_staff_staff_id"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "job_staff_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
@@ -388,6 +402,103 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      staff_performance: {
+        Row: {
+          created_at: string
+          efficiency_score: number | null
+          id: string
+          notes: string | null
+          performance_date: string
+          punctuality_score: number | null
+          revenue_generated: number | null
+          satisfaction_score: number | null
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          efficiency_score?: number | null
+          id?: string
+          notes?: string | null
+          performance_date?: string
+          punctuality_score?: number | null
+          revenue_generated?: number | null
+          satisfaction_score?: number | null
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          efficiency_score?: number | null
+          id?: string
+          notes?: string | null
+          performance_date?: string
+          punctuality_score?: number | null
+          revenue_generated?: number | null
+          satisfaction_score?: number | null
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_performance_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_schedules: {
+        Row: {
+          break_end: string | null
+          break_start: string | null
+          created_at: string
+          end_time: string
+          id: string
+          is_available: boolean | null
+          notes: string | null
+          schedule_date: string
+          staff_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          break_end?: string | null
+          break_start?: string | null
+          created_at?: string
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          notes?: string | null
+          schedule_date: string
+          staff_id: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          break_end?: string | null
+          break_start?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          notes?: string | null
+          schedule_date?: string
+          staff_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_schedules_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

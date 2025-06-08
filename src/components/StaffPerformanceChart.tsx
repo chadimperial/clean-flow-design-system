@@ -1,8 +1,12 @@
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { TrendingUp, TrendingDown, Star, Clock, Users, DollarSign } from "lucide-react"
+import { TrendingUp, TrendingDown, Star, Clock, Users, DollarSign, Plus } from "lucide-react"
+import { useStaffPerformance } from "@/hooks/useSupabaseQuery"
+import { PerformanceGradingModal } from "./PerformanceGradingModal"
 
 interface StaffMember {
   id: string
@@ -23,6 +27,10 @@ interface StaffPerformanceChartProps {
 }
 
 export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
+  const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [showGradingModal, setShowGradingModal] = useState(false)
+  const { data: performanceData = [], refetch } = useStaffPerformance()
+
   const getPerformanceColor = (score: number) => {
     if (score >= 95) return "text-green-600 bg-green-50"
     if (score >= 90) return "text-blue-600 bg-blue-50"
@@ -35,11 +43,38 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
     return <TrendingDown className="h-4 w-4" />
   }
 
-  const topPerformers = [...staff].sort((a, b) => {
+  // Merge staff data with performance data
+  const staffWithPerformance = staff.map(member => {
+    const latestPerformance = performanceData
+      .filter(p => p.staff?.name === member.name)
+      .sort((a, b) => new Date(b.performance_date).getTime() - new Date(a.performance_date).getTime())[0]
+
+    return {
+      ...member,
+      performance: {
+        punctuality: latestPerformance?.punctuality_score || 0,
+        satisfaction: latestPerformance?.satisfaction_score || 0,
+        efficiency: latestPerformance?.efficiency_score || 0,
+        revenue: latestPerformance?.revenue_generated || 0
+      }
+    }
+  })
+
+  const topPerformers = [...staffWithPerformance].sort((a, b) => {
     const aAvg = (a.performance.punctuality + a.performance.satisfaction + a.performance.efficiency) / 3
     const bAvg = (b.performance.punctuality + b.performance.satisfaction + b.performance.efficiency) / 3
     return bAvg - aAvg
   }).slice(0, 3)
+
+  const handleGradePerformance = (staffMember: any) => {
+    setSelectedStaff(staffMember)
+    setShowGradingModal(true)
+  }
+
+  const handlePerformanceUpdate = () => {
+    refetch()
+    setShowGradingModal(false)
+  }
 
   return (
     <div className="space-y-6">
@@ -74,7 +109,7 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
                         <p className="text-sm text-gray-600">{staff.role}</p>
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 mb-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Overall Score</span>
                         <span className="font-bold text-indigo-600">{avgScore.toFixed(1)}%</span>
@@ -91,6 +126,14 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
                         <span className="font-medium text-green-600">${staff.performance.revenue}</span>
                       </div>
                     </div>
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => handleGradePerformance(staff)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Grade Performance
+                    </Button>
                   </div>
                 </div>
               )
@@ -134,10 +177,11 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
                       Revenue
                     </div>
                   </th>
+                  <th className="text-center py-3 px-4 font-medium text-gray-900">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {staff.map((member) => (
+                {staffWithPerformance.map((member) => (
                   <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
@@ -173,6 +217,15 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
                         {getPerformanceIcon(member.performance.efficiency)}
                       </div>
                     </td>
+                    <td className="py-4 px-4 text-center">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleGradePerformance(member)}
+                      >
+                        Grade
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -191,30 +244,30 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">High Performance</span>
+                <span className="font-medium text-green-800">Performance Tracking</span>
               </div>
               <p className="text-sm text-green-700">
-                Team punctuality improved by 12% this month. Sarah Johnson leads with 98% on-time arrivals.
+                {performanceData.length} performance reviews recorded. Click "Grade" to add new evaluations.
               </p>
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Star className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-800">Customer Satisfaction</span>
+                <span className="font-medium text-blue-800">Real-time Data</span>
               </div>
               <p className="text-sm text-blue-700">
-                Average team rating is 4.7/5 stars. David Rodriguez has the highest customer satisfaction at 97%.
+                All performance metrics are stored in the database and update in real-time.
               </p>
             </div>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-yellow-600" />
-                <span className="font-medium text-yellow-800">Training Opportunity</span>
+                <span className="font-medium text-yellow-800">Interactive Grading</span>
               </div>
               <p className="text-sm text-yellow-700">
-                Emma Wilson shows potential for improvement in efficiency. Consider additional training.
+                Use the grading system to track punctuality, satisfaction, and efficiency scores.
               </p>
             </div>
           </CardContent>
@@ -226,7 +279,7 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              {staff.map((member) => (
+              {staffWithPerformance.map((member) => (
                 <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -248,13 +301,20 @@ export function StaffPerformanceChart({ staff }: StaffPerformanceChartProps) {
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-900">Total Team Revenue</span>
                 <span className="text-xl font-bold text-indigo-600">
-                  ${staff.reduce((sum, member) => sum + member.performance.revenue, 0)}
+                  ${staffWithPerformance.reduce((sum, member) => sum + member.performance.revenue, 0)}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <PerformanceGradingModal
+        open={showGradingModal}
+        onOpenChange={setShowGradingModal}
+        staffMember={selectedStaff}
+        onUpdate={handlePerformanceUpdate}
+      />
     </div>
   )
 }
