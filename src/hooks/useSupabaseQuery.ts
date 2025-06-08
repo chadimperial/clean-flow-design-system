@@ -27,7 +27,7 @@ export const useJobs = () => {
           *,
           clients(name, email),
           job_staff(
-            staff(name, email, rating)
+            staff!job_staff_staff_id_fkey(name, email, rating)
           )
         `)
         .order('created_at', { ascending: false });
@@ -61,7 +61,7 @@ export const useStaffPerformance = () => {
         .from('staff_performance')
         .select(`
           *,
-          staff(name, role, email)
+          staff!staff_performance_staff_id_fkey(name, role, email)
         `)
         .order('performance_date', { ascending: false });
       
@@ -79,7 +79,7 @@ export const useStaffSchedules = () => {
         .from('staff_schedules')
         .select(`
           *,
-          staff(name, role, email, status)
+          staff!staff_schedules_staff_id_fkey(name, role, email, status)
         `)
         .order('schedule_date', { ascending: false });
       
