@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CreateClientModalProps {
   open: boolean;
@@ -36,6 +37,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +67,9 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
         description: `${formData.companyName} has been added to your client list.`,
       });
 
+      // Invalidate queries to refresh the client list
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      
       onOpenChange(false);
       // Reset form
       setFormData({

@@ -11,85 +11,56 @@ import { ClientCard } from '@/components/ClientCard';
 import { ClientProfile } from '@/components/ClientProfile';
 import { CreateClientModal } from '@/components/CreateClientModal';
 import { LeadPipeline } from '@/components/LeadPipeline';
+import { useClients } from '@/hooks/useSupabaseQuery';
+import { useQueryClient } from '@tanstack/react-query';
 
-const clients = [
-  {
-    id: "1",
-    name: "Sunshine Office Complex",
-    industry: "Commercial Real Estate",
-    status: "active" as const,
-    contactPerson: "Sarah Johnson",
-    contactTitle: "Property Manager",
-    phone: "(555) 123-4567",
-    email: "sarah@sunshineoffice.com",
-    address: "123 Business Park, Downtown",
-    contractValue: 15000,
-    servicesThisMonth: 12,
-    lastService: "2 days ago",
-    nextService: "Tomorrow",
-    satisfaction: 4.8,
-    paymentStatus: "current" as const,
-    isVIP: true,
+// Transform database client to match the expected interface
+const transformClient = (dbClient: any) => {
+  // Parse notes to extract additional information
+  const notes = dbClient.notes || '';
+  const notesLines = notes.split('\n');
+  
+  let industry = 'Other';
+  let contactTitle = '';
+  let serviceType = '';
+  let contractValue = 0;
+  let additionalNotes = '';
+
+  notesLines.forEach((line: string) => {
+    if (line.startsWith('Industry:')) {
+      industry = line.replace('Industry:', '').trim();
+    } else if (line.startsWith('Contact Title:')) {
+      contactTitle = line.replace('Contact Title:', '').trim();
+    } else if (line.startsWith('Service Type:')) {
+      serviceType = line.replace('Service Type:', '').trim();
+    } else if (line.startsWith('Contract Value:')) {
+      const value = line.replace('Contract Value:', '').trim().replace(/[$,]/g, '');
+      contractValue = parseFloat(value) || 0;
+    } else if (line.startsWith('Notes:')) {
+      additionalNotes = line.replace('Notes:', '').trim();
+    }
+  });
+
+  return {
+    id: dbClient.id,
+    name: dbClient.name,
+    industry,
+    status: 'active' as const, // Default status
+    contactPerson: dbClient.contact_person || '',
+    contactTitle,
+    phone: dbClient.phone || '',
+    email: dbClient.email || '',
+    address: dbClient.address || '',
+    contractValue,
+    servicesThisMonth: Math.floor(Math.random() * 20) + 1, // Random for now
+    lastService: '2 days ago', // Default for now
+    nextService: 'Tomorrow', // Default for now
+    satisfaction: 4.5 + Math.random() * 0.5, // Random between 4.5-5.0
+    paymentStatus: 'current' as const, // Default status
+    isVIP: contractValue > 20000, // VIP if contract value > 20k
     logo: null
-  },
-  {
-    id: "2",
-    name: "Metro Hospital",
-    industry: "Healthcare",
-    status: "active" as const,
-    contactPerson: "Dr. Michael Chen",
-    contactTitle: "Facilities Director",
-    phone: "(555) 234-5678",
-    email: "mchen@metrohospital.com",
-    address: "456 Health Plaza",
-    contractValue: 25000,
-    servicesThisMonth: 20,
-    lastService: "1 day ago",
-    nextService: "Today",
-    satisfaction: 4.9,
-    paymentStatus: "current" as const,
-    isVIP: true,
-    logo: null
-  },
-  {
-    id: "3",
-    name: "TechStart Inc",
-    industry: "Technology",
-    status: "new" as const,
-    contactPerson: "Alex Rodriguez",
-    contactTitle: "Office Manager",
-    phone: "(555) 345-6789",
-    email: "alex@techstart.com",
-    address: "789 Innovation Drive",
-    contractValue: 8000,
-    servicesThisMonth: 4,
-    lastService: "1 week ago",
-    nextService: "Next Monday",
-    satisfaction: 4.5,
-    paymentStatus: "current" as const,
-    isVIP: false,
-    logo: null
-  },
-  {
-    id: "4",
-    name: "Downtown Restaurant Group",
-    industry: "Food Service",
-    status: "at-risk" as const,
-    contactPerson: "Maria Garcia",
-    contactTitle: "Operations Manager",
-    phone: "(555) 456-7890",
-    email: "maria@downtownrestaurants.com",
-    address: "321 Culinary Street",
-    contractValue: 12000,
-    servicesThisMonth: 6,
-    lastService: "2 weeks ago",
-    nextService: "Overdue",
-    satisfaction: 3.8,
-    paymentStatus: "overdue" as const,
-    isVIP: false,
-    logo: null
-  }
-];
+  };
+};
 
 const ClientCRM = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,6 +68,12 @@ const ClientCRM = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  
+  const { data: dbClients = [], isLoading, error } = useClients();
+  const queryClient = useQueryClient();
+
+  // Transform database clients to match the expected interface
+  const clients = dbClients.map(transformClient);
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,6 +97,14 @@ const ClientCRM = () => {
 
   const stats = getStatusStats();
 
+  const handleCreateModalClose = (wasCreated: boolean) => {
+    setShowCreateModal(false);
+    if (wasCreated) {
+      // Refetch clients data when a new client is created
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    }
+  };
+
   if (selectedClient) {
     const client = clients.find(c => c.id === selectedClient);
     if (client) {
@@ -130,6 +115,28 @@ const ClientCRM = () => {
         />
       );
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading clients...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">Error loading clients. Please try again.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -304,7 +311,7 @@ const ClientCRM = () => {
         {/* Create Client Modal */}
         <CreateClientModal
           open={showCreateModal}
-          onOpenChange={setShowCreateModal}
+          onOpenChange={handleCreateModalClose}
         />
       </div>
     </div>
