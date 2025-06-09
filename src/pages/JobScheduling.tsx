@@ -12,7 +12,7 @@ import { JobAnalytics } from "@/components/JobAnalytics"
 import { CreateJobModal } from "@/components/CreateJobModal"
 import { useJobs, useStaff } from "@/hooks/useSupabaseQuery"
 import { supabase } from "@/integrations/supabase/client"
-import { format } from "date-fns"
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, parseISO } from "date-fns"
 
 const JobScheduling = () => {
   const [currentView, setCurrentView] = useState<"week" | "day" | "month">("week")
@@ -56,7 +56,11 @@ const JobScheduling = () => {
     priority: job.priority as "low" | "normal" | "high" | "urgent",
     serviceType: job.service_type,
     duration: job.estimated_duration || 0,
-    completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0
+    completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0,
+    scheduledDate: job.scheduled_date,
+    scheduledTime: job.scheduled_time,
+    description: job.description,
+    price: job.price
   }))
 
   // Transform staff data to match the correct interface
@@ -77,6 +81,28 @@ const JobScheduling = () => {
 
   const handleJobCreated = () => {
     refetchJobs()
+  }
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    if (currentView === 'week') {
+      setSelectedDate(direction === 'prev' ? subWeeks(selectedDate, 1) : addWeeks(selectedDate, 1))
+    } else if (currentView === 'month') {
+      setSelectedDate(direction === 'prev' ? subMonths(selectedDate, 1) : addMonths(selectedDate, 1))
+    } else {
+      setSelectedDate(direction === 'prev' ? new Date(selectedDate.getTime() - 24 * 60 * 60 * 1000) : new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000))
+    }
+  }
+
+  const getDateRangeText = () => {
+    if (currentView === 'day') {
+      return format(selectedDate, 'MMMM d, yyyy')
+    } else if (currentView === 'week') {
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+      const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
+      return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`
+    } else {
+      return format(selectedDate, 'MMMM yyyy')
+    }
   }
 
   return (
@@ -127,22 +153,18 @@ const JobScheduling = () => {
 
             {/* Date Navigation */}
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => navigateDate('prev')}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="font-semibold text-gray-900 min-w-[140px] text-center">
-                {selectedDate.toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  year: 'numeric',
-                  day: currentView === 'day' ? 'numeric' : undefined 
-                })}
+              <span className="font-semibold text-gray-900 min-w-[180px] text-center">
+                {getDateRangeText()}
               </span>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => navigateDate('next')}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
 
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
               Today
             </Button>
           </div>
@@ -189,11 +211,11 @@ const JobScheduling = () => {
               </CardHeader>
               <CardContent className="p-0">
                 {currentView === "week" ? (
-                  <WeekView jobs={transformedJobs} staff={staffData} />
+                  <WeekView jobs={transformedJobs} selectedDate={selectedDate} />
                 ) : currentView === "day" ? (
-                  <DayView jobs={transformedJobs} onUpdate={refetchJobs} />
+                  <DayView jobs={transformedJobs} selectedDate={selectedDate} onUpdate={refetchJobs} />
                 ) : (
-                  <MonthView jobs={transformedJobs} />
+                  <MonthView jobs={transformedJobs} selectedDate={selectedDate} />
                 )}
               </CardContent>
             </Card>
@@ -219,64 +241,126 @@ const JobScheduling = () => {
 }
 
 // Week View Component
-const WeekView = ({ jobs, staff }: { jobs: any[], staff: any[] }) => {
-  const timeSlots = Array.from({ length: 17 }, (_, i) => `${i + 6}:00`)
-  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const WeekView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) => {
+  const timeSlots = Array.from({ length: 17 }, (_, i) => `${String(i + 6).padStart(2, '0')}:00`)
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
+
+  const getJobsForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    return jobs.filter(job => job.scheduledDate === dateStr)
+  }
+
+  const getJobsForTimeSlot = (date: Date, timeSlot: string) => {
+    const dayJobs = getJobsForDay(date)
+    return dayJobs.filter(job => {
+      if (!job.scheduledTime) return timeSlot === '06:00' // Default to first slot if no time
+      const jobHour = parseInt(job.scheduledTime.split(':')[0])
+      const slotHour = parseInt(timeSlot.split(':')[0])
+      return jobHour === slotHour
+    })
+  }
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[800px] grid grid-cols-8 gap-2 p-4">
-        {/* Time header */}
-        <div className="text-sm font-medium text-gray-500 p-2">Time</div>
-        {weekDays.map(day => (
-          <div key={day} className="text-sm font-medium text-gray-900 p-2 text-center">
-            {day}
-          </div>
-        ))}
-
-        {/* Time slots */}
-        {timeSlots.map(time => (
-          <div key={time} className="contents">
-            <div className="text-xs text-gray-500 p-2 border-r border-gray-100">
-              {time}
+      <div className="min-w-[900px]">
+        {/* Header with days */}
+        <div className="grid grid-cols-8 gap-1 border-b border-gray-200">
+          <div className="p-3 text-sm font-medium text-gray-500">Time</div>
+          {weekDays.map(day => (
+            <div key={day.toISOString()} className="p-3 text-center">
+              <div className="font-medium text-gray-900">{format(day, 'EEE')}</div>
+              <div className="text-sm text-gray-600">{format(day, 'MMM d')}</div>
             </div>
-            {weekDays.map(day => (
-              <div key={`${day}-${time}`} className="min-h-[60px] border border-gray-100 p-1">
-                {time === "9:00" && day === "Mon" && (
-                  <div className="bg-blue-50 border-l-4 border-blue-500 rounded p-2 text-xs">
-                    <div className="font-medium text-blue-900">Sunshine Office</div>
-                    <div className="text-blue-600">Deep Clean</div>
-                  </div>
-                )}
-                {time === "8:00" && day === "Tue" && (
-                  <div className="bg-orange-50 border-l-4 border-orange-500 rounded p-2 text-xs">
-                    <div className="font-medium text-orange-900">Metro Hospital</div>
-                    <div className="text-orange-600">Medical Clean</div>
-                  </div>
-                )}
+          ))}
+        </div>
+
+        {/* Time slots grid */}
+        <div className="max-h-[600px] overflow-y-auto">
+          {timeSlots.map(time => (
+            <div key={time} className="grid grid-cols-8 gap-1 border-b border-gray-100">
+              <div className="p-3 text-xs text-gray-500 border-r border-gray-200 bg-gray-50">
+                {time}
               </div>
-            ))}
-          </div>
-        ))}
+              {weekDays.map(day => {
+                const dayJobs = getJobsForTimeSlot(day, time)
+                return (
+                  <div key={`${day.toISOString()}-${time}`} className="min-h-[80px] p-2">
+                    {dayJobs.map(job => (
+                      <div key={job.id} className="mb-1">
+                        <div className={`rounded-lg p-2 text-xs border-l-4 ${
+                          job.status === 'completed' ? 'bg-green-50 border-green-500' :
+                          job.status === 'in-progress' ? 'bg-orange-50 border-orange-500' :
+                          'bg-blue-50 border-blue-500'
+                        }`}>
+                          <div className="font-medium text-gray-900 truncate">{job.service}</div>
+                          <div className="text-gray-600 truncate">{job.client}</div>
+                          <div className="text-gray-500">{job.time}</div>
+                          <Badge className={`text-xs mt-1 ${
+                            job.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {job.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
 // Day View Component  
-const DayView = ({ jobs, onUpdate }: { jobs: any[], onUpdate: () => void }) => {
+const DayView = ({ jobs, selectedDate, onUpdate }: { jobs: any[], selectedDate: Date, onUpdate: () => void }) => {
+  const dayJobs = jobs.filter(job => {
+    if (!job.scheduledDate) return false
+    return isSameDay(parseISO(job.scheduledDate), selectedDate)
+  })
+
+  const sortedJobs = dayJobs.sort((a, b) => {
+    if (!a.scheduledTime && !b.scheduledTime) return 0
+    if (!a.scheduledTime) return 1
+    if (!b.scheduledTime) return -1
+    return a.scheduledTime.localeCompare(b.scheduledTime)
+  })
+
   return (
     <div className="p-6 space-y-4">
-      {jobs.map(job => (
-        <JobCard key={job.id} {...job} expanded={true} onUpdate={onUpdate} />
-      ))}
+      {sortedJobs.length === 0 ? (
+        <div className="text-center py-12">
+          <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs scheduled</h3>
+          <p className="text-gray-600">No jobs are scheduled for {format(selectedDate, 'MMMM d, yyyy')}</p>
+        </div>
+      ) : (
+        sortedJobs.map(job => (
+          <JobCard key={job.id} {...job} expanded={true} onUpdate={onUpdate} />
+        ))
+      )}
     </div>
   )
 }
 
 // Month View Component
-const MonthView = ({ jobs }: { jobs: any[] }) => {
-  const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1)
+const MonthView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) => {
+  const monthStart = startOfMonth(selectedDate)
+  const monthEnd = endOfMonth(selectedDate)
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 0 })
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 })
+  const dateRange = eachDayOfInterval({ start: startDate, end: endDate })
+
+  const getJobsForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    return jobs.filter(job => job.scheduledDate === dateStr)
+  }
   
   return (
     <div className="p-4">
@@ -286,17 +370,32 @@ const MonthView = ({ jobs }: { jobs: any[] }) => {
             {day}
           </div>
         ))}
-        {daysInMonth.map(day => (
-          <div key={day} className="min-h-[100px] border border-gray-200 rounded p-2">
-            <div className="text-sm font-medium text-gray-900 mb-1">{day}</div>
-            {day === 15 && (
+        {dateRange.map(date => {
+          const dayJobs = getJobsForDay(date)
+          const isCurrentMonth = date.getMonth() === selectedDate.getMonth()
+          
+          return (
+            <div key={date.toISOString()} className={`min-h-[120px] border border-gray-200 rounded p-2 ${
+              !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
+            }`}>
+              <div className="text-sm font-medium text-gray-900 mb-1">{format(date, 'd')}</div>
               <div className="space-y-1">
-                <div className="w-full h-2 bg-blue-200 rounded"></div>
-                <div className="w-full h-2 bg-green-200 rounded"></div>
+                {dayJobs.slice(0, 3).map(job => (
+                  <div key={job.id} className={`text-xs p-1 rounded truncate ${
+                    job.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
+                    'bg-blue-100 text-blue-800'
+                  }`}>
+                    {job.service}
+                  </div>
+                ))}
+                {dayJobs.length > 3 && (
+                  <div className="text-xs text-gray-500">+{dayJobs.length - 3} more</div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
