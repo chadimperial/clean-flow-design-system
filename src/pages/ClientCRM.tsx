@@ -41,11 +41,27 @@ const transformClient = (dbClient: any) => {
     }
   });
 
+  // Determine status based on various factors
+  let status: 'active' | 'inactive' | 'new' | 'at-risk' | 'vip' = 'active';
+  
+  // Determine if client is new (created in last 30 days)
+  const createdDate = new Date(dbClient.created_at);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  if (createdDate > thirtyDaysAgo) {
+    status = 'new';
+  } else if (contractValue > 20000) {
+    status = 'vip';
+  } else if (contractValue === 0 || !dbClient.phone || !dbClient.email) {
+    status = 'at-risk';
+  }
+
   return {
     id: dbClient.id,
     name: dbClient.name,
     industry,
-    status: 'active' as const, // Default status
+    status,
     contactPerson: dbClient.contact_person || '',
     contactTitle,
     phone: dbClient.phone || '',
