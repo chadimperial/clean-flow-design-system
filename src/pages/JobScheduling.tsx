@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search, Building2, Star, Phone, MessageCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,7 @@ import { JobAnalytics } from "@/components/JobAnalytics"
 import { CreateJobModal } from "@/components/CreateJobModal"
 import { useJobs, useStaff } from "@/hooks/useSupabaseQuery"
 import { supabase } from "@/integrations/supabase/client"
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, parseISO } from "date-fns"
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, parseISO, isToday } from "date-fns"
 
 const JobScheduling = () => {
   const [currentView, setCurrentView] = useState<"week" | "day" | "month">("week")
@@ -34,6 +34,7 @@ const JobScheduling = () => {
           table: 'jobs'
         },
         () => {
+          console.log('Job change detected, refetching...')
           refetchJobs()
         }
       )
@@ -44,24 +45,65 @@ const JobScheduling = () => {
     }
   }, [refetchJobs])
 
-  // Transform jobs data
-  const transformedJobs = jobs.map(job => ({
-    id: job.id,
-    client: job.clients?.name || 'Unknown Client',
-    service: job.title,
-    time: job.scheduled_time ? format(new Date(`2000-01-01T${job.scheduled_time}`), 'h:mm a') : 'No time set',
-    address: job.location || 'No address',
-    staff: job.job_staff?.map(js => js.staff?.name).filter(Boolean) || [],
-    status: job.status as "scheduled" | "in-progress" | "completed",
-    priority: job.priority as "low" | "normal" | "high" | "urgent",
-    serviceType: job.service_type,
-    duration: job.estimated_duration || 0,
-    completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0,
-    scheduledDate: job.scheduled_date,
-    scheduledTime: job.scheduled_time,
-    description: job.description,
-    price: job.price
-  }))
+  // Debug: Log jobs data
+  useEffect(() => {
+    console.log('Current jobs data:', jobs)
+  }, [jobs])
+
+  // Transform jobs data with better error handling
+  const transformedJobs = jobs.map(job => {
+    const clientName = job.clients?.name || 'Unknown Client'
+    const serviceTitle = job.title || 'Cleaning Service'
+    const jobTime = job.scheduled_time ? format(new Date(`2000-01-01T${job.scheduled_time}`), 'h:mm a') : 'No time set'
+    const jobAddress = job.location || 'No address'
+    const assignedStaff = job.job_staff?.map(js => js.staff?.name).filter(Boolean) || []
+    
+    return {
+      id: job.id,
+      client: clientName,
+      service: serviceTitle,
+      time: jobTime,
+      address: jobAddress,
+      staff: assignedStaff,
+      status: job.status as "scheduled" | "in-progress" | "completed",
+      priority: job.priority as "low" | "normal" | "high" | "urgent",
+      serviceType: job.service_type,
+      duration: job.estimated_duration || 0,
+      completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0,
+      scheduledDate: job.scheduled_date,
+      scheduledTime: job.scheduled_time,
+      description: job.description,
+      price: job.price
+    }
+  })
+
+  // Filter jobs for current date range based on view
+  const getFilteredJobs = () => {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    
+    if (currentView === 'day') {
+      const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
+      return transformedJobs.filter(job => job.scheduledDate === selectedDateStr)
+    } else if (currentView === 'week') {
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+      const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
+      return transformedJobs.filter(job => {
+        if (!job.scheduledDate) return false
+        const jobDate = parseISO(job.scheduledDate)
+        return jobDate >= weekStart && jobDate <= weekEnd
+      })
+    } else {
+      const monthStart = startOfMonth(selectedDate)
+      const monthEnd = endOfMonth(selectedDate)
+      return transformedJobs.filter(job => {
+        if (!job.scheduledDate) return false
+        const jobDate = parseISO(job.scheduledDate)
+        return jobDate >= monthStart && jobDate <= monthEnd
+      })
+    }
+  }
+
+  const filteredJobs = getFilteredJobs()
 
   // Transform staff data to match the correct interface
   const staffData = staff.map(member => ({
@@ -191,6 +233,11 @@ const JobScheduling = () => {
           </div>
         </div>
 
+        {/* Debug Info */}
+        <div className="text-sm text-gray-500 bg-white p-3 rounded">
+          Total jobs in database: {transformedJobs.length} | Filtered jobs for current view: {filteredJobs.length}
+        </div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Calendar/Schedule View */}
@@ -211,11 +258,11 @@ const JobScheduling = () => {
               </CardHeader>
               <CardContent className="p-0">
                 {currentView === "week" ? (
-                  <WeekView jobs={transformedJobs} selectedDate={selectedDate} />
+                  <WeekView jobs={filteredJobs} selectedDate={selectedDate} />
                 ) : currentView === "day" ? (
-                  <DayView jobs={transformedJobs} selectedDate={selectedDate} onUpdate={refetchJobs} />
+                  <DayView jobs={filteredJobs} selectedDate={selectedDate} onUpdate={refetchJobs} />
                 ) : (
-                  <MonthView jobs={transformedJobs} selectedDate={selectedDate} />
+                  <MonthView jobs={filteredJobs} selectedDate={selectedDate} />
                 )}
               </CardContent>
             </Card>
@@ -270,8 +317,12 @@ const WeekView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) =
           <div className="p-3 text-sm font-medium text-gray-500">Time</div>
           {weekDays.map(day => (
             <div key={day.toISOString()} className="p-3 text-center">
-              <div className="font-medium text-gray-900">{format(day, 'EEE')}</div>
-              <div className="text-sm text-gray-600">{format(day, 'MMM d')}</div>
+              <div className={`font-medium ${isToday(day) ? 'text-blue-600' : 'text-gray-900'}`}>
+                {format(day, 'EEE')}
+              </div>
+              <div className={`text-sm ${isToday(day) ? 'text-blue-600' : 'text-gray-600'}`}>
+                {format(day, 'MMM d')}
+              </div>
             </div>
           ))}
         </div>
@@ -288,24 +339,7 @@ const WeekView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) =
                 return (
                   <div key={`${day.toISOString()}-${time}`} className="min-h-[80px] p-2">
                     {dayJobs.map(job => (
-                      <div key={job.id} className="mb-1">
-                        <div className={`rounded-lg p-2 text-xs border-l-4 ${
-                          job.status === 'completed' ? 'bg-green-50 border-green-500' :
-                          job.status === 'in-progress' ? 'bg-orange-50 border-orange-500' :
-                          'bg-blue-50 border-blue-500'
-                        }`}>
-                          <div className="font-medium text-gray-900 truncate">{job.service}</div>
-                          <div className="text-gray-600 truncate">{job.client}</div>
-                          <div className="text-gray-500">{job.time}</div>
-                          <Badge className={`text-xs mt-1 ${
-                            job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {job.status}
-                          </Badge>
-                        </div>
-                      </div>
+                      <JobTimeSlotCard key={job.id} job={job} />
                     ))}
                   </div>
                 )
@@ -320,12 +354,7 @@ const WeekView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) =
 
 // Day View Component  
 const DayView = ({ jobs, selectedDate, onUpdate }: { jobs: any[], selectedDate: Date, onUpdate: () => void }) => {
-  const dayJobs = jobs.filter(job => {
-    if (!job.scheduledDate) return false
-    return isSameDay(parseISO(job.scheduledDate), selectedDate)
-  })
-
-  const sortedJobs = dayJobs.sort((a, b) => {
+  const sortedJobs = jobs.sort((a, b) => {
     if (!a.scheduledTime && !b.scheduledTime) return 0
     if (!a.scheduledTime) return 1
     if (!b.scheduledTime) return -1
@@ -342,7 +371,7 @@ const DayView = ({ jobs, selectedDate, onUpdate }: { jobs: any[], selectedDate: 
         </div>
       ) : (
         sortedJobs.map(job => (
-          <JobCard key={job.id} {...job} expanded={true} onUpdate={onUpdate} />
+          <JobDetailCard key={job.id} job={job} onUpdate={onUpdate} />
         ))
       )}
     </div>
@@ -377,8 +406,10 @@ const MonthView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) 
           return (
             <div key={date.toISOString()} className={`min-h-[120px] border border-gray-200 rounded p-2 ${
               !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
-            }`}>
-              <div className="text-sm font-medium text-gray-900 mb-1">{format(date, 'd')}</div>
+            } ${isToday(date) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+              <div className={`text-sm font-medium mb-1 ${isToday(date) ? 'text-blue-600' : 'text-gray-900'}`}>
+                {format(date, 'd')}
+              </div>
               <div className="space-y-1">
                 {dayJobs.slice(0, 3).map(job => (
                   <div key={job.id} className={`text-xs p-1 rounded truncate ${
@@ -398,6 +429,139 @@ const MonthView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) 
         })}
       </div>
     </div>
+  )
+}
+
+// Job Time Slot Card Component for Week View
+const JobTimeSlotCard = ({ job }: { job: any }) => {
+  return (
+    <div className={`rounded-lg p-2 text-xs border-l-4 mb-1 ${
+      job.status === 'completed' ? 'bg-green-50 border-green-500' :
+      job.status === 'in-progress' ? 'bg-orange-50 border-orange-500' :
+      'bg-blue-50 border-blue-500'
+    }`}>
+      <div className="font-medium text-gray-900 truncate">{job.service}</div>
+      <div className="text-gray-600 truncate">{job.client}</div>
+      <div className="text-gray-500">{job.time}</div>
+      <Badge className={`text-xs mt-1 ${
+        job.status === 'completed' ? 'bg-green-100 text-green-800' :
+        job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
+        'bg-blue-100 text-blue-800'
+      }`}>
+        {job.status}
+      </Badge>
+    </div>
+  )
+}
+
+// Job Detail Card Component for Day View (styled like the reference images)
+const JobDetailCard = ({ job, onUpdate }: { job: any, onUpdate: () => void }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800'
+      case 'in-progress': return 'bg-orange-100 text-orange-800'
+      case 'scheduled': return 'bg-blue-100 text-blue-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-100 text-red-800'
+      case 'high': return 'bg-orange-100 text-orange-800'
+      case 'normal': return 'bg-blue-100 text-blue-800'
+      case 'low': return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  return (
+    <Card className="hover:shadow-md transition-shadow border border-gray-200">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <Building2 className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-gray-900">{job.client}</h3>
+              <p className="text-gray-600">{job.serviceType}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className={getStatusColor(job.status)}>
+              {job.status}
+            </Badge>
+            {job.priority !== 'normal' && (
+              <Badge className={getPriorityColor(job.priority)}>
+                {job.priority}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-blue-600 mb-1">
+              <Clock className="h-4 w-4" />
+              <span className="text-sm font-medium">Time</span>
+            </div>
+            <p className="text-lg font-semibold text-blue-900">{job.time}</p>
+          </div>
+
+          <div className="bg-green-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-green-600 mb-1">
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm font-medium">Duration</span>
+            </div>
+            <p className="text-lg font-semibold text-green-900">{job.duration}h</p>
+          </div>
+
+          <div className="bg-yellow-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-yellow-600 mb-1">
+              <Star className="h-4 w-4" />
+              <span className="text-sm font-medium">Service</span>
+            </div>
+            <p className="text-lg font-semibold text-yellow-900">{job.service}</p>
+          </div>
+
+          <div className="bg-purple-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-purple-600 mb-1">
+              <User className="h-4 w-4" />
+              <span className="text-sm font-medium">Staff</span>
+            </div>
+            <p className="text-lg font-semibold text-purple-900">{job.staff.length || 0}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-gray-600">
+              <MapPin className="h-4 w-4" />
+              <span className="text-sm">{job.address}</span>
+            </div>
+            {job.price && (
+              <div className="text-lg font-bold text-green-600">
+                ${Number(job.price).toLocaleString()}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">
+              <MessageCircle className="h-4 w-4 mr-1" />
+              Message
+            </Button>
+            <Button variant="outline" size="sm">
+              <Phone className="h-4 w-4 mr-1" />
+              Call
+            </Button>
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+              View Details
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
