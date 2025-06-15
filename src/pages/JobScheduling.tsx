@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, parseISO, isToday } from "date-fns"
 
 const JobScheduling = () => {
-  const [currentView, setCurrentView] = useState<"week" | "day" | "month">("week")
+  const [currentView, setCurrentView] = useState<"week" | "day" | "month">("day")
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showCreateModal, setShowCreateModal] = useState(false)
   
@@ -100,25 +100,35 @@ const JobScheduling = () => {
 
   console.log('Transformed jobs:', transformedJobs)
 
-  // Filter jobs for current date range based on view
+  // Filter jobs for current date range based on view - FIXED LOGIC
   const getFilteredJobs = () => {
     if (!transformedJobs || transformedJobs.length === 0) {
       console.log('No jobs to filter')
       return []
     }
 
-    const today = format(new Date(), 'yyyy-MM-dd')
-    
     if (currentView === 'day') {
       const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
-      const filtered = transformedJobs.filter(job => job.scheduledDate === selectedDateStr)
+      console.log('Filtering for date:', selectedDateStr)
+      
+      // Show ALL jobs if no date is set, or filter by exact date match
+      const filtered = transformedJobs.filter(job => {
+        if (!job.scheduledDate) {
+          console.log('Job has no scheduled date:', job.id)
+          return true // Show jobs without dates in day view
+        }
+        const matches = job.scheduledDate === selectedDateStr
+        console.log(`Job ${job.id} scheduled for ${job.scheduledDate}, matches ${selectedDateStr}:`, matches)
+        return matches
+      })
+      
       console.log(`Day view filtered jobs for ${selectedDateStr}:`, filtered)
       return filtered
     } else if (currentView === 'week') {
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
       const filtered = transformedJobs.filter(job => {
-        if (!job.scheduledDate) return false
+        if (!job.scheduledDate) return true // Show jobs without dates
         try {
           const jobDate = parseISO(job.scheduledDate)
           return jobDate >= weekStart && jobDate <= weekEnd
@@ -133,7 +143,7 @@ const JobScheduling = () => {
       const monthStart = startOfMonth(selectedDate)
       const monthEnd = endOfMonth(selectedDate)
       const filtered = transformedJobs.filter(job => {
-        if (!job.scheduledDate) return false
+        if (!job.scheduledDate) return true // Show jobs without dates
         try {
           const jobDate = parseISO(job.scheduledDate)
           return jobDate >= monthStart && jobDate <= monthEnd
@@ -315,6 +325,7 @@ const JobScheduling = () => {
         {/* Debug Info */}
         <div className="text-sm text-gray-500 bg-white p-3 rounded">
           <p>Total jobs in database: {transformedJobs.length} | Filtered jobs for current view: {filteredJobs.length}</p>
+          <p>Current view: {currentView} | Selected date: {format(selectedDate, 'yyyy-MM-dd')}</p>
           <p>Jobs loading: {jobsLoading ? 'Yes' : 'No'} | Staff loading: {staffLoading ? 'Yes' : 'No'}</p>
           {(jobsError || staffError) && (
             <p className="text-red-600">Error: {jobsError?.message || staffError?.message}</p>
@@ -443,6 +454,9 @@ const DayView = ({ jobs, selectedDate, onUpdate }: { jobs: any[], selectedDate: 
     if (!b.scheduledTime) return -1
     return a.scheduledTime.localeCompare(b.scheduledTime)
   })
+
+  console.log('DayView - Total jobs passed:', jobs.length)
+  console.log('DayView - Sorted jobs:', sortedJobs)
 
   return (
     <div className="p-6 space-y-4">
