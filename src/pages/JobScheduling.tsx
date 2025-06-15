@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search, Building2, Star, Phone, MessageCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -714,3 +715,4 @@ const JobDetailCard = ({ job, onUpdate, onViewDetails }: { job: any, onUpdate: (
 }
 
 export default JobScheduling
+
