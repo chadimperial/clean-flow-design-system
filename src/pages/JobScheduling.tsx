@@ -9,6 +9,7 @@ import { JobCard } from "@/components/JobCard"
 import { StaffAvailabilityPanel } from "@/components/StaffAvailabilityPanel"
 import { JobAnalytics } from "@/components/JobAnalytics"
 import { CreateJobModal } from "@/components/CreateJobModal"
+import { JobDetailsModal } from "@/components/JobDetailsModal"
 import { useJobs, useStaff } from "@/hooks/useSupabaseQuery"
 import { supabase } from "@/integrations/supabase/client"
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, parseISO, isToday } from "date-fns"
@@ -17,6 +18,8 @@ const JobScheduling = () => {
   const [currentView, setCurrentView] = useState<"week" | "day" | "month">("day")
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<any>(null)
+  const [showJobDetails, setShowJobDetails] = useState(false)
   
   const { data: jobs = [], refetch: refetchJobs, isLoading: jobsLoading, error: jobsError } = useJobs()
   const { data: staff = [], isLoading: staffLoading, error: staffError } = useStaff()
@@ -178,6 +181,16 @@ const JobScheduling = () => {
   const handleJobCreated = () => {
     console.log('Job created, refetching data...')
     refetchJobs()
+  }
+
+  const handleJobDetailsOpen = (job: any) => {
+    setSelectedJob(job)
+    setShowJobDetails(true)
+  }
+
+  const handleJobDetailsClose = () => {
+    setShowJobDetails(false)
+    setSelectedJob(null)
   }
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -354,7 +367,7 @@ const JobScheduling = () => {
                 {currentView === "week" ? (
                   <WeekView jobs={filteredJobs} selectedDate={selectedDate} />
                 ) : currentView === "day" ? (
-                  <DayView jobs={filteredJobs} selectedDate={selectedDate} onUpdate={refetchJobs} />
+                  <DayView jobs={filteredJobs} selectedDate={selectedDate} onUpdate={refetchJobs} onJobDetailsOpen={handleJobDetailsOpen} />
                 ) : (
                   <MonthView jobs={filteredJobs} selectedDate={selectedDate} />
                 )}
@@ -375,6 +388,15 @@ const JobScheduling = () => {
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onJobCreated={handleJobCreated}
+        />
+      )}
+
+      {showJobDetails && selectedJob && (
+        <JobDetailsModal
+          isOpen={showJobDetails}
+          onClose={handleJobDetailsClose}
+          job={selectedJob}
+          onUpdate={refetchJobs}
         />
       )}
     </div>
@@ -447,7 +469,7 @@ const WeekView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) =
 }
 
 // Day View Component  
-const DayView = ({ jobs, selectedDate, onUpdate }: { jobs: any[], selectedDate: Date, onUpdate: () => void }) => {
+const DayView = ({ jobs, selectedDate, onUpdate, onJobDetailsOpen }: { jobs: any[], selectedDate: Date, onUpdate: () => void, onJobDetailsOpen: (job: any) => void }) => {
   const sortedJobs = jobs.sort((a, b) => {
     if (!a.scheduledTime && !b.scheduledTime) return 0
     if (!a.scheduledTime) return 1
@@ -468,7 +490,7 @@ const DayView = ({ jobs, selectedDate, onUpdate }: { jobs: any[], selectedDate: 
         </div>
       ) : (
         sortedJobs.map(job => (
-          <JobDetailCard key={job.id} job={job} onUpdate={onUpdate} />
+          <JobDetailCard key={job.id} job={job} onUpdate={onUpdate} onViewDetails={onJobDetailsOpen} />
         ))
       )}
     </div>
@@ -552,7 +574,7 @@ const JobTimeSlotCard = ({ job }: { job: any }) => {
 }
 
 // Job Detail Card Component for Day View (styled like the reference images)
-const JobDetailCard = ({ job, onUpdate }: { job: any, onUpdate: () => void }) => {
+const JobDetailCard = ({ job, onUpdate, onViewDetails }: { job: any, onUpdate: () => void, onViewDetails: (job: any) => void }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800'
@@ -652,7 +674,11 @@ const JobDetailCard = ({ job, onUpdate }: { job: any, onUpdate: () => void }) =>
               <Phone className="h-4 w-4 mr-1" />
               Call
             </Button>
-            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+            <Button 
+              size="sm" 
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => onViewDetails(job)}
+            >
               View Details
             </Button>
           </div>
