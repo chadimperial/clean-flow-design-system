@@ -19,8 +19,8 @@ const JobScheduling = () => {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showCreateModal, setShowCreateModal] = useState(false)
   
-  const { data: jobs = [], refetch: refetchJobs } = useJobs()
-  const { data: staff = [] } = useStaff()
+  const { data: jobs = [], refetch: refetchJobs, isLoading: jobsLoading, error: jobsError } = useJobs()
+  const { data: staff = [], isLoading: staffLoading, error: staffError } = useStaff()
 
   // Set up real-time subscription for jobs
   useEffect(() => {
@@ -45,18 +45,40 @@ const JobScheduling = () => {
     }
   }, [refetchJobs])
 
-  // Debug: Log jobs data
+  // Debug logging
   useEffect(() => {
-    console.log('Current jobs data:', jobs)
-  }, [jobs])
+    console.log('Jobs loading:', jobsLoading, 'Jobs error:', jobsError)
+    console.log('Staff loading:', staffLoading, 'Staff error:', staffError)
+    console.log('Raw jobs data:', jobs)
+    console.log('Raw staff data:', staff)
+  }, [jobs, staff, jobsLoading, jobsError, staffLoading, staffError])
 
-  // Transform jobs data with better error handling
-  const transformedJobs = jobs.map(job => {
+  // Transform jobs data with better error handling and validation
+  const transformedJobs = jobs?.map(job => {
+    console.log('Processing job:', job)
+    
+    // Safe access to nested data
     const clientName = job.clients?.name || 'Unknown Client'
     const serviceTitle = job.title || 'Cleaning Service'
-    const jobTime = job.scheduled_time ? format(new Date(`2000-01-01T${job.scheduled_time}`), 'h:mm a') : 'No time set'
+    
+    // Handle time formatting safely
+    let jobTime = 'No time set'
+    if (job.scheduled_time) {
+      try {
+        jobTime = format(new Date(`2000-01-01T${job.scheduled_time}`), 'h:mm a')
+      } catch (error) {
+        console.error('Error formatting time:', error)
+        jobTime = job.scheduled_time.toString()
+      }
+    }
+    
     const jobAddress = job.location || 'No address'
-    const assignedStaff = job.job_staff?.map(js => js.staff?.name).filter(Boolean) || []
+    
+    // Safe access to staff data
+    const assignedStaff = job.job_staff?.map(js => {
+      console.log('Processing job_staff:', js)
+      return js.staff?.name || 'Unknown Staff'
+    }).filter(Boolean) || []
     
     return {
       id: job.id,
@@ -65,56 +87,79 @@ const JobScheduling = () => {
       time: jobTime,
       address: jobAddress,
       staff: assignedStaff,
-      status: job.status as "scheduled" | "in-progress" | "completed",
-      priority: job.priority as "low" | "normal" | "high" | "urgent",
-      serviceType: job.service_type,
-      duration: job.estimated_duration || 0,
+      status: (job.status as "scheduled" | "in-progress" | "completed") || "scheduled",
+      priority: (job.priority as "low" | "normal" | "high" | "urgent") || "normal",
+      serviceType: job.service_type || 'General Cleaning',
+      duration: job.estimated_duration || 2,
       completionPercentage: job.status === 'completed' ? 100 : job.status === 'in-progress' ? 50 : 0,
       scheduledDate: job.scheduled_date,
       scheduledTime: job.scheduled_time,
-      description: job.description,
-      price: job.price
+      description: job.description || '',
+      price: job.price || 0
     }
-  })
+  }) || []
+
+  console.log('Transformed jobs:', transformedJobs)
 
   // Filter jobs for current date range based on view
   const getFilteredJobs = () => {
+    if (!transformedJobs || transformedJobs.length === 0) {
+      console.log('No jobs to filter')
+      return []
+    }
+
     const today = format(new Date(), 'yyyy-MM-dd')
     
     if (currentView === 'day') {
       const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
-      return transformedJobs.filter(job => job.scheduledDate === selectedDateStr)
+      const filtered = transformedJobs.filter(job => job.scheduledDate === selectedDateStr)
+      console.log(`Day view filtered jobs for ${selectedDateStr}:`, filtered)
+      return filtered
     } else if (currentView === 'week') {
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
-      return transformedJobs.filter(job => {
+      const filtered = transformedJobs.filter(job => {
         if (!job.scheduledDate) return false
-        const jobDate = parseISO(job.scheduledDate)
-        return jobDate >= weekStart && jobDate <= weekEnd
+        try {
+          const jobDate = parseISO(job.scheduledDate)
+          return jobDate >= weekStart && jobDate <= weekEnd
+        } catch (error) {
+          console.error('Error parsing job date:', job.scheduledDate, error)
+          return false
+        }
       })
+      console.log(`Week view filtered jobs:`, filtered)
+      return filtered
     } else {
       const monthStart = startOfMonth(selectedDate)
       const monthEnd = endOfMonth(selectedDate)
-      return transformedJobs.filter(job => {
+      const filtered = transformedJobs.filter(job => {
         if (!job.scheduledDate) return false
-        const jobDate = parseISO(job.scheduledDate)
-        return jobDate >= monthStart && jobDate <= monthEnd
+        try {
+          const jobDate = parseISO(job.scheduledDate)
+          return jobDate >= monthStart && jobDate <= monthEnd
+        } catch (error) {
+          console.error('Error parsing job date:', job.scheduledDate, error)
+          return false
+        }
       })
+      console.log(`Month view filtered jobs:`, filtered)
+      return filtered
     }
   }
 
   const filteredJobs = getFilteredJobs()
 
   // Transform staff data to match the correct interface
-  const staffData = staff.map(member => ({
-    name: member.name,
-    status: member.status as "available" | "on-job" | "offline" | "break",
-    avatar: member.name.split(' ').map(n => n[0]).join(''),
+  const staffData = staff?.map(member => ({
+    name: member.name || 'Unknown Staff',
+    status: (member.status as "available" | "on-job" | "offline" | "break") || "available",
+    avatar: (member.name || 'U').split(' ').map(n => n[0]).join(''),
     currentLocation: member.location || 'No location',
     nextJob: "No scheduled jobs",
     phone: member.phone || 'No phone',
     jobsToday: member.jobs_today || 0
-  }))
+  })) || []
 
   // Calculate stats
   const scheduledJobs = transformedJobs.filter(job => job.status === 'scheduled').length
@@ -122,6 +167,7 @@ const JobScheduling = () => {
   const completedJobs = transformedJobs.filter(job => job.status === 'completed').length
 
   const handleJobCreated = () => {
+    console.log('Job created, refetching data...')
     refetchJobs()
   }
 
@@ -145,6 +191,40 @@ const JobScheduling = () => {
     } else {
       return format(selectedDate, 'MMMM yyyy')
     }
+  }
+
+  // Show loading state
+  if (jobsLoading || staffLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading job scheduling data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (jobsError || staffError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Data</h3>
+            <p className="text-red-600 mb-4">
+              {jobsError?.message || staffError?.message || 'Failed to load data'}
+            </p>
+            <Button onClick={() => {
+              refetchJobs()
+              window.location.reload()
+            }}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -235,7 +315,11 @@ const JobScheduling = () => {
 
         {/* Debug Info */}
         <div className="text-sm text-gray-500 bg-white p-3 rounded">
-          Total jobs in database: {transformedJobs.length} | Filtered jobs for current view: {filteredJobs.length}
+          <p>Total jobs in database: {transformedJobs.length} | Filtered jobs for current view: {filteredJobs.length}</p>
+          <p>Jobs loading: {jobsLoading ? 'Yes' : 'No'} | Staff loading: {staffLoading ? 'Yes' : 'No'}</p>
+          {(jobsError || staffError) && (
+            <p className="text-red-600">Error: {jobsError?.message || staffError?.message}</p>
+          )}
         </div>
 
         {/* Main Content Grid */}
