@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search, Building2, Star, Phone, MessageCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -74,7 +73,7 @@ const JobScheduling = () => {
     
     const jobAddress = job.location || 'No address'
     
-    // Safe access to staff data
+    // Safe access to staff data - handle the new relationship structure
     const assignedStaff = job.job_staff?.map(js => {
       console.log('Processing job_staff:', js)
       return js.staff?.name || 'Unknown Staff'

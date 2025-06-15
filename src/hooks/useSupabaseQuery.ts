@@ -33,8 +33,8 @@ export const useJobs = () => {
           .select(`
             *,
             clients(name, email),
-            job_staff(
-              staff!job_staff_staff_id_fkey(id, name, email, rating)
+            job_staff!inner(
+              staff(id, name, email, rating)
             )
           `)
           .order('created_at', { ascending: false });
@@ -186,74 +186,6 @@ export const useEquipment = () => {
         throw error;
       }
       console.log('Equipment fetched:', data)
-      return data || [];
-    },
-  });
-};
-
-// New hooks for finance and payroll data
-export const useExpenses = () => {
-  return useQuery({
-    queryKey: ['expenses'],
-    queryFn: async () => {
-      console.log('Fetching expenses...')
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .order('expense_date', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching expenses:', error)
-        throw error;
-      }
-      console.log('Expenses fetched:', data)
-      return data || [];
-    },
-  });
-};
-
-export const usePayroll = () => {
-  return useQuery({
-    queryKey: ['payroll'],
-    queryFn: async () => {
-      console.log('Fetching payroll...')
-      const { data, error } = await supabase
-        .from('payroll')
-        .select(`
-          *,
-          staff!payroll_staff_id_fkey(name, email, role)
-        `)
-        .order('pay_period_start', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching payroll:', error)
-        throw error;
-      }
-      console.log('Payroll fetched:', data)
-      return data || [];
-    },
-  });
-};
-
-export const useRevenue = () => {
-  return useQuery({
-    queryKey: ['revenue'],
-    queryFn: async () => {
-      console.log('Fetching revenue...')
-      const { data, error } = await supabase
-        .from('revenue')
-        .select(`
-          *,
-          clients(name, email),
-          invoices(invoice_number, status)
-        `)
-        .order('revenue_date', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching revenue:', error)
-        throw error;
-      }
-      console.log('Revenue fetched:', data)
       return data || [];
     },
   });
