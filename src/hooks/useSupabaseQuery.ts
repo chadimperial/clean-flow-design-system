@@ -33,8 +33,8 @@ export const useJobs = () => {
           .select(`
             *,
             clients(name, email),
-            job_staff!inner(
-              staff(id, name, email, rating)
+            job_staff!job_staff_job_id_fkey(
+              staff!job_staff_staff_id_fkey(id, name, email, rating)
             )
           `)
           .order('created_at', { ascending: false });

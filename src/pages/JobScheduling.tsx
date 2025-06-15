@@ -73,7 +73,7 @@ const JobScheduling = () => {
     
     const jobAddress = job.location || 'No address'
     
-    // Safe access to staff data - handle the new relationship structure
+    // Safe access to staff data - handle the relationship structure properly
     const assignedStaff = job.job_staff?.map(js => {
       console.log('Processing job_staff:', js)
       return js.staff?.name || 'Unknown Staff'
