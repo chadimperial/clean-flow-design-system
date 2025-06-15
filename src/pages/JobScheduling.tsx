@@ -103,7 +103,7 @@ const JobScheduling = () => {
 
   console.log('Transformed jobs:', transformedJobs)
 
-  // Filter jobs for current date range based on view - FIXED LOGIC
+  // Filter jobs for current date range based on view - IMPROVED LOGIC
   const getFilteredJobs = () => {
     if (!transformedJobs || transformedJobs.length === 0) {
       console.log('No jobs to filter')
@@ -114,15 +114,22 @@ const JobScheduling = () => {
       const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
       console.log('Filtering for date:', selectedDateStr)
       
-      // Show ALL jobs if no date is set, or filter by exact date match
+      // Show jobs that match the selected date OR jobs without a scheduled date
       const filtered = transformedJobs.filter(job => {
-        if (!job.scheduledDate) {
-          console.log('Job has no scheduled date:', job.id)
-          return true // Show jobs without dates in day view
+        // Always show jobs that match the selected date
+        if (job.scheduledDate === selectedDateStr) {
+          console.log(`Job ${job.id} matches selected date ${selectedDateStr}`)
+          return true
         }
-        const matches = job.scheduledDate === selectedDateStr
-        console.log(`Job ${job.id} scheduled for ${job.scheduledDate}, matches ${selectedDateStr}:`, matches)
-        return matches
+        
+        // For today's view, also show jobs without scheduled dates
+        const isToday = selectedDateStr === format(new Date(), 'yyyy-MM-dd')
+        if (isToday && !job.scheduledDate) {
+          console.log(`Job ${job.id} has no date, showing in today's view`)
+          return true
+        }
+        
+        return false
       })
       
       console.log(`Day view filtered jobs for ${selectedDateStr}:`, filtered)
@@ -184,6 +191,7 @@ const JobScheduling = () => {
   }
 
   const handleJobDetailsOpen = (job: any) => {
+    console.log('Opening job details for:', job)
     setSelectedJob(job)
     setShowJobDetails(true)
   }

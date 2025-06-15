@@ -116,8 +116,8 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+        <DialogHeader className="border-b pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl">
             <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
               <Building2 className="h-6 w-6 text-indigo-600" />
@@ -129,7 +129,7 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 p-6">
           {/* Status and Priority */}
           <div className="flex items-center gap-3">
             <Badge className={getStatusColor(job.status)}>
@@ -145,7 +145,7 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
 
           {/* Job Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
+            <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-blue-600 mb-2">
                   <Clock className="h-5 w-5" />
@@ -158,7 +158,7 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-green-600 mb-2">
                   <Calendar className="h-5 w-5" />
@@ -169,18 +169,18 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-purple-600 mb-2">
                   <User className="h-5 w-5" />
                   <span className="font-medium">Staff Assigned</span>
                 </div>
-                <p className="text-xl font-bold text-purple-900">{job.staff.length}</p>
+                <p className="text-xl font-bold text-purple-900">{job.staff?.length || 0}</p>
                 <p className="text-sm text-gray-600">Team members</p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-yellow-50 border-yellow-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-yellow-600 mb-2">
                   <DollarSign className="h-5 w-5" />
@@ -195,7 +195,7 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
           </div>
 
           {/* Location Information */}
-          <Card>
+          <Card className="border-gray-200">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-gray-600" />
@@ -219,7 +219,7 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
           </Card>
 
           {/* Service Details */}
-          <Card>
+          <Card className="border-gray-200">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Star className="h-5 w-5 text-gray-600" />
@@ -245,8 +245,8 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
           </Card>
 
           {/* Staff Assignment */}
-          {job.staff.length > 0 && (
-            <Card>
+          {job.staff && job.staff.length > 0 && (
+            <Card className="border-gray-200">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <User className="h-5 w-5 text-gray-600" />
@@ -271,7 +271,7 @@ export function JobDetailsModal({ isOpen, onClose, job, onUpdate }: JobDetailsMo
           <Separator />
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 justify-between pt-4">
             <div className="flex gap-3">
               <Button variant="outline" size="lg">
                 <Edit className="h-4 w-4 mr-2" />
