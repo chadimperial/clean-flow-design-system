@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,14 +20,18 @@ import {
   Receipt,
   Banknote
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { FinanceDashboard } from '@/components/FinanceDashboard';
 import { InvoiceManagement } from '@/components/InvoiceManagement';
 import { PayrollManagement } from '@/components/PayrollManagement';
 import { ExpenseTracker } from '@/components/ExpenseTracker';
 import { FinancialReports } from '@/components/FinancialReports';
+import { GenerateReportModal } from '@/components/GenerateReportModal';
 
 const FinancePayroll = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const kpiData = [
     {
@@ -90,6 +93,10 @@ const FinancePayroll = () => {
     }
   };
 
+  const handleProcessPayroll = () => {
+    navigate('/process-payroll');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -100,11 +107,14 @@ const FinancePayroll = () => {
             <p className="text-gray-600 mt-1">Comprehensive financial management and payroll processing</p>
           </div>
           <div className="flex gap-3">
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => setShowReportModal(true)}
+            >
               <FileText className="h-4 w-4 mr-2" />
               Generate Report
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleProcessPayroll}>
               <DollarSign className="h-4 w-4 mr-2" />
               Process Payroll
             </Button>
@@ -257,6 +267,12 @@ const FinancePayroll = () => {
             <FinancialReports />
           </TabsContent>
         </Tabs>
+
+        {/* Generate Report Modal */}
+        <GenerateReportModal 
+          open={showReportModal} 
+          onClose={() => setShowReportModal(false)} 
+        />
       </div>
     </div>
   );
