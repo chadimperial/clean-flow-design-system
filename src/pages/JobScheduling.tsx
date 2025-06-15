@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Calendar, Plus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -362,7 +361,7 @@ const JobScheduling = () => {
                 ) : currentView === "day" ? (
                   <DayView jobs={filteredJobs} selectedDate={selectedDate} onUpdate={refetchJobs} onJobDetailsOpen={handleJobDetailsOpen} />
                 ) : (
-                  <MonthView jobs={filteredJobs} selectedDate={selectedDate} />
+                  <MonthView jobs={filteredJobs} selectedDate={selectedDate} onJobDetailsOpen={handleJobDetailsOpen} />
                 )}
               </CardContent>
             </Card>

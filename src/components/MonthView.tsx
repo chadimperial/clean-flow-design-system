@@ -4,9 +4,10 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 interface MonthViewProps {
   jobs: any[]
   selectedDate: Date
+  onJobDetailsOpen?: (job: any) => void
 }
 
-export function MonthView({ jobs, selectedDate }: MonthViewProps) {
+export function MonthView({ jobs, selectedDate, onJobDetailsOpen }: MonthViewProps) {
   const monthStart = startOfMonth(selectedDate)
   const monthEnd = endOfMonth(selectedDate)
   const startDate = startOfWeek(monthStart, { weekStartsOn: 0 })
@@ -16,6 +17,12 @@ export function MonthView({ jobs, selectedDate }: MonthViewProps) {
   const getJobsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
     return jobs.filter(job => job.scheduledDate === dateStr)
+  }
+
+  const handleJobClick = (job: any) => {
+    if (onJobDetailsOpen) {
+      onJobDetailsOpen(job)
+    }
   }
   
   return (
@@ -39,11 +46,16 @@ export function MonthView({ jobs, selectedDate }: MonthViewProps) {
               </div>
               <div className="space-y-1">
                 {dayJobs.slice(0, 3).map(job => (
-                  <div key={job.id} className={`text-xs p-1 rounded truncate ${
-                    job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
+                  <div 
+                    key={job.id} 
+                    className={`text-xs p-1 rounded truncate cursor-pointer hover:opacity-80 transition-opacity ${
+                      job.status === 'completed' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                      job.status === 'in-progress' ? 'bg-orange-100 text-orange-800 hover:bg-orange-200' :
+                      'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    }`}
+                    onClick={() => handleJobClick(job)}
+                    title={`${job.service} - ${job.client} at ${job.time}`}
+                  >
                     {job.service}
                   </div>
                 ))}
