@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +18,8 @@ export const useClients = () => {
       console.log('Clients fetched:', data)
       return data;
     },
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -26,15 +27,15 @@ export const useJobs = () => {
   return useQuery({
     queryKey: ['jobs'],
     queryFn: async () => {
-      console.log('Fetching jobs...')
+      console.log('Fetching jobs with detailed relationships...')
       try {
         const { data, error } = await supabase
           .from('jobs')
           .select(`
             *,
-            clients(name, email),
+            clients(id, name, email, phone, address),
             job_staff!job_staff_job_id_fkey(
-              staff!job_staff_staff_id_fkey(id, name, email, rating)
+              staff!job_staff_staff_id_fkey(id, name, email, rating, role, status)
             )
           `)
           .order('created_at', { ascending: false });
@@ -43,7 +44,7 @@ export const useJobs = () => {
           console.error('Error fetching jobs:', error)
           throw error;
         }
-        console.log('Jobs fetched successfully:', data)
+        console.log('Jobs fetched successfully with relationships:', data)
         return data || [];
       } catch (error) {
         console.error('Failed to fetch jobs:', error)
@@ -52,6 +53,9 @@ export const useJobs = () => {
     },
     retry: 3,
     retryDelay: 1000,
+    staleTime: 10000, // Consider data fresh for 10 seconds (shorter for jobs due to frequent updates)
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Refetch every 30 seconds as fallback
   });
 };
 
@@ -79,6 +83,8 @@ export const useStaff = () => {
     },
     retry: 3,
     retryDelay: 1000,
+    staleTime: 60000, // Consider data fresh for 60 seconds (staff data changes less frequently)
+    refetchOnWindowFocus: true,
   });
 };
 

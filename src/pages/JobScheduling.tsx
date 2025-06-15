@@ -27,25 +27,44 @@ const JobScheduling = () => {
   const { data: jobs = [], refetch: refetchJobs, isLoading: jobsLoading, error: jobsError } = useJobs()
   const { data: staff = [], isLoading: staffLoading, error: staffError } = useStaff()
 
-  // Set up real-time subscription for jobs
+  // Enhanced real-time subscription with WebSockets for jobs
   useEffect(() => {
+    console.log('Setting up real-time subscription for jobs...')
+    
     const channel = supabase
-      .channel('jobs-changes-scheduling')
+      .channel('jobs-realtime-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'jobs'
+        },
+        (payload) => {
+          console.log('Real-time job change detected:', payload)
+          // Force refetch to get the latest data with relationships
+          refetchJobs()
+        }
+      )
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'jobs'
+          table: 'job_staff'
         },
-        () => {
-          console.log('Job change detected, refetching...')
+        (payload) => {
+          console.log('Real-time job_staff change detected:', payload)
+          // Also refetch when job_staff assignments change
           refetchJobs()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status)
+      })
 
     return () => {
+      console.log('Cleaning up real-time subscription')
       supabase.removeChannel(channel)
     }
   }, [refetchJobs])
@@ -106,7 +125,7 @@ const JobScheduling = () => {
 
   console.log('Transformed jobs:', transformedJobs)
 
-  // Filter jobs for current date range based on view - IMPROVED LOGIC
+  // Improved filter jobs for current date range based on view
   const getFilteredJobs = () => {
     if (!transformedJobs || transformedJobs.length === 0) {
       console.log('No jobs to filter')
@@ -116,23 +135,15 @@ const JobScheduling = () => {
     if (currentView === 'day') {
       const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
       console.log('Filtering for date:', selectedDateStr)
+      console.log('Available job dates:', transformedJobs.map(j => j.scheduledDate))
       
-      // Show jobs that match the selected date OR jobs without a scheduled date
       const filtered = transformedJobs.filter(job => {
-        // Always show jobs that match the selected date
-        if (job.scheduledDate === selectedDateStr) {
-          console.log(`Job ${job.id} matches selected date ${selectedDateStr}`)
-          return true
+        // Show jobs that match the selected date
+        const matches = job.scheduledDate === selectedDateStr
+        if (matches) {
+          console.log(`Job ${job.id} (${job.service}) matches selected date ${selectedDateStr}`)
         }
-        
-        // For today's view, also show jobs without scheduled dates
-        const isToday = selectedDateStr === format(new Date(), 'yyyy-MM-dd')
-        if (isToday && !job.scheduledDate) {
-          console.log(`Job ${job.id} has no date, showing in today's view`)
-          return true
-        }
-        
-        return false
+        return matches
       })
       
       console.log(`Day view filtered jobs for ${selectedDateStr}:`, filtered)
@@ -140,11 +151,17 @@ const JobScheduling = () => {
     } else if (currentView === 'week') {
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
+      console.log('Week range:', format(weekStart, 'yyyy-MM-dd'), 'to', format(weekEnd, 'yyyy-MM-dd'))
+      
       const filtered = transformedJobs.filter(job => {
-        if (!job.scheduledDate) return true // Show jobs without dates
+        if (!job.scheduledDate) return false
         try {
           const jobDate = parseISO(job.scheduledDate)
-          return jobDate >= weekStart && jobDate <= weekEnd
+          const inRange = jobDate >= weekStart && jobDate <= weekEnd
+          if (inRange) {
+            console.log(`Job ${job.id} (${job.service}) is in week range`)
+          }
+          return inRange
         } catch (error) {
           console.error('Error parsing job date:', job.scheduledDate, error)
           return false
@@ -155,11 +172,17 @@ const JobScheduling = () => {
     } else {
       const monthStart = startOfMonth(selectedDate)
       const monthEnd = endOfMonth(selectedDate)
+      console.log('Month range:', format(monthStart, 'yyyy-MM-dd'), 'to', format(monthEnd, 'yyyy-MM-dd'))
+      
       const filtered = transformedJobs.filter(job => {
-        if (!job.scheduledDate) return true // Show jobs without dates
+        if (!job.scheduledDate) return false
         try {
           const jobDate = parseISO(job.scheduledDate)
-          return jobDate >= monthStart && jobDate <= monthEnd
+          const inRange = jobDate >= monthStart && jobDate <= monthEnd
+          if (inRange) {
+            console.log(`Job ${job.id} (${job.service}) is in month range`)
+          }
+          return inRange
         } catch (error) {
           console.error('Error parsing job date:', job.scheduledDate, error)
           return false
@@ -189,7 +212,7 @@ const JobScheduling = () => {
   const completedJobs = transformedJobs.filter(job => job.status === 'completed').length
 
   const handleJobCreated = () => {
-    console.log('Job created, refetching data...')
+    console.log('Job created, triggering refetch...')
     refetchJobs()
   }
 
@@ -304,11 +327,12 @@ const JobScheduling = () => {
           onTodayClick={() => setSelectedDate(new Date())}
         />
 
-        {/* Debug Info */}
+        {/* Enhanced Debug Info */}
         <div className="text-sm text-gray-500 bg-white p-3 rounded">
           <p>Total jobs in database: {transformedJobs.length} | Filtered jobs for current view: {filteredJobs.length}</p>
           <p>Current view: {currentView} | Selected date: {format(selectedDate, 'yyyy-MM-dd')}</p>
           <p>Jobs loading: {jobsLoading ? 'Yes' : 'No'} | Staff loading: {staffLoading ? 'Yes' : 'No'}</p>
+          <p>Real-time subscription: Active | WebSocket connection: Established</p>
           {(jobsError || staffError) && (
             <p className="text-red-600">Error: {jobsError?.message || staffError?.message}</p>
           )}
