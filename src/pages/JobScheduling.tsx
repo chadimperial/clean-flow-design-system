@@ -1,18 +1,21 @@
+
 import { useState, useEffect } from "react"
-import { Calendar, Clock, MapPin, User, Settings, Filter, Plus, ChevronLeft, ChevronRight, Search, Building2, Star, Phone, MessageCircle } from "lucide-react"
+import { Calendar, Plus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { JobCard } from "@/components/JobCard"
+import { StatusCards } from "@/components/StatusCards"
+import { ControlsBar } from "@/components/ControlsBar"
+import { WeekView } from "@/components/WeekView"
+import { DayView } from "@/components/DayView"
+import { MonthView } from "@/components/MonthView"
 import { StaffAvailabilityPanel } from "@/components/StaffAvailabilityPanel"
 import { JobAnalytics } from "@/components/JobAnalytics"
 import { CreateJobModal } from "@/components/CreateJobModal"
 import { JobDetailsModal } from "@/components/JobDetailsModal"
 import { useJobs, useStaff } from "@/hooks/useSupabaseQuery"
 import { supabase } from "@/integrations/supabase/client"
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, parseISO, isToday } from "date-fns"
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns"
 
 const JobScheduling = () => {
   const [currentView, setCurrentView] = useState<"week" | "day" | "month">("day")
@@ -286,78 +289,20 @@ const JobScheduling = () => {
         </div>
 
         {/* Status Cards */}
-        <div className="flex items-center justify-center gap-4">
-          <div className="flex items-center gap-1 bg-blue-500 text-white px-6 py-3 rounded-full shadow-md">
-            <span className="text-lg font-bold">{scheduledJobs}</span>
-            <span className="text-sm font-medium">Scheduled</span>
-          </div>
-          <div className="flex items-center gap-1 bg-orange-500 text-white px-6 py-3 rounded-full shadow-md">
-            <span className="text-lg font-bold">{inProgressJobs}</span>
-            <span className="text-sm font-medium">In Progress</span>
-          </div>
-          <div className="flex items-center gap-1 bg-green-500 text-white px-6 py-3 rounded-full shadow-md">
-            <span className="text-lg font-bold">{completedJobs}</span>
-            <span className="text-sm font-medium">Completed</span>
-          </div>
-        </div>
+        <StatusCards 
+          scheduledJobs={scheduledJobs}
+          inProgressJobs={inProgressJobs}
+          completedJobs={completedJobs}
+        />
 
         {/* Controls Bar */}
-        <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-          <div className="flex items-center gap-4">
-            {/* View Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              {["week", "day", "month"].map((view) => (
-                <Button
-                  key={view}
-                  variant={currentView === view ? "default" : "ghost"}
-                  size="sm"
-                  className={`capitalize ${currentView === view ? "bg-white shadow-sm" : ""}`}
-                  onClick={() => setCurrentView(view as "week" | "day" | "month")}
-                >
-                  {view}
-                </Button>
-              ))}
-            </div>
-
-            {/* Date Navigation */}
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => navigateDate('prev')}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-semibold text-gray-900 min-w-[180px] text-center">
-                {getDateRangeText()}
-              </span>
-              <Button variant="ghost" size="sm" onClick={() => navigateDate('next')}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
-              Today
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search jobs, clients..."
-                className="pl-10 w-64 bg-gray-50 border-gray-200"
-              />
-            </div>
-
-            {/* Filters */}
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <ControlsBar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          dateRangeText={getDateRangeText()}
+          onNavigateDate={navigateDate}
+          onTodayClick={() => setSelectedDate(new Date())}
+        />
 
         {/* Debug Info */}
         <div className="text-sm text-gray-500 bg-white p-3 rounded">
@@ -424,281 +369,6 @@ const JobScheduling = () => {
         />
       )}
     </div>
-  )
-}
-
-// Week View Component
-const WeekView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) => {
-  const timeSlots = Array.from({ length: 17 }, (_, i) => `${String(i + 6).padStart(2, '0')}:00`)
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
-
-  const getJobsForDay = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd')
-    return jobs.filter(job => job.scheduledDate === dateStr)
-  }
-
-  const getJobsForTimeSlot = (date: Date, timeSlot: string) => {
-    const dayJobs = getJobsForDay(date)
-    return dayJobs.filter(job => {
-      if (!job.scheduledTime) return timeSlot === '06:00' // Default to first slot if no time
-      const jobHour = parseInt(job.scheduledTime.split(':')[0])
-      const slotHour = parseInt(timeSlot.split(':')[0])
-      return jobHour === slotHour
-    })
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[900px]">
-        {/* Header with days */}
-        <div className="grid grid-cols-8 gap-1 border-b border-gray-200">
-          <div className="p-3 text-sm font-medium text-gray-500">Time</div>
-          {weekDays.map(day => (
-            <div key={day.toISOString()} className="p-3 text-center">
-              <div className={`font-medium ${isToday(day) ? 'text-blue-600' : 'text-gray-900'}`}>
-                {format(day, 'EEE')}
-              </div>
-              <div className={`text-sm ${isToday(day) ? 'text-blue-600' : 'text-gray-600'}`}>
-                {format(day, 'MMM d')}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Time slots grid */}
-        <div className="max-h-[600px] overflow-y-auto">
-          {timeSlots.map(time => (
-            <div key={time} className="grid grid-cols-8 gap-1 border-b border-gray-100">
-              <div className="p-3 text-xs text-gray-500 border-r border-gray-200 bg-gray-50">
-                {time}
-              </div>
-              {weekDays.map(day => {
-                const dayJobs = getJobsForTimeSlot(day, time)
-                return (
-                  <div key={`${day.toISOString()}-${time}`} className="min-h-[80px] p-2">
-                    {dayJobs.map(job => (
-                      <JobTimeSlotCard key={job.id} job={job} />
-                    ))}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Day View Component  
-const DayView = ({ jobs, selectedDate, onUpdate, onJobDetailsOpen }: { jobs: any[], selectedDate: Date, onUpdate: () => void, onJobDetailsOpen: (job: any) => void }) => {
-  const sortedJobs = jobs.sort((a, b) => {
-    if (!a.scheduledTime && !b.scheduledTime) return 0
-    if (!a.scheduledTime) return 1
-    if (!b.scheduledTime) return -1
-    return a.scheduledTime.localeCompare(b.scheduledTime)
-  })
-
-  console.log('DayView - Total jobs passed:', jobs.length)
-  console.log('DayView - Sorted jobs:', sortedJobs)
-
-  return (
-    <div className="p-6 space-y-4">
-      {sortedJobs.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs scheduled</h3>
-          <p className="text-gray-600">No jobs are scheduled for {format(selectedDate, 'MMMM d, yyyy')}</p>
-        </div>
-      ) : (
-        sortedJobs.map(job => (
-          <JobCardReference key={job.id} job={job} onUpdate={onUpdate} onViewDetails={onJobDetailsOpen} />
-        ))
-      )}
-    </div>
-  )
-}
-
-// Month View Component
-const MonthView = ({ jobs, selectedDate }: { jobs: any[], selectedDate: Date }) => {
-  const monthStart = startOfMonth(selectedDate)
-  const monthEnd = endOfMonth(selectedDate)
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 0 })
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 })
-  const dateRange = eachDayOfInterval({ start: startDate, end: endDate })
-
-  const getJobsForDay = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd')
-    return jobs.filter(job => job.scheduledDate === dateStr)
-  }
-  
-  return (
-    <div className="p-4">
-      <div className="grid grid-cols-7 gap-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-sm font-medium text-gray-500 p-2 text-center">
-            {day}
-          </div>
-        ))}
-        {dateRange.map(date => {
-          const dayJobs = getJobsForDay(date)
-          const isCurrentMonth = date.getMonth() === selectedDate.getMonth()
-          
-          return (
-            <div key={date.toISOString()} className={`min-h-[120px] border border-gray-200 rounded p-2 ${
-              !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
-            } ${isToday(date) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
-              <div className={`text-sm font-medium mb-1 ${isToday(date) ? 'text-blue-600' : 'text-gray-900'}`}>
-                {format(date, 'd')}
-              </div>
-              <div className="space-y-1">
-                {dayJobs.slice(0, 3).map(job => (
-                  <div key={job.id} className={`text-xs p-1 rounded truncate ${
-                    job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {job.service}
-                  </div>
-                ))}
-                {dayJobs.length > 3 && (
-                  <div className="text-xs text-gray-500">+{dayJobs.length - 3} more</div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// Job Time Slot Card Component for Week View
-const JobTimeSlotCard = ({ job }: { job: any }) => {
-  return (
-    <div className={`rounded-lg p-2 text-xs border-l-4 mb-1 ${
-      job.status === 'completed' ? 'bg-green-50 border-green-500' :
-      job.status === 'in-progress' ? 'bg-orange-50 border-orange-500' :
-      'bg-blue-50 border-blue-500'
-    }`}>
-      <div className="font-medium text-gray-900 truncate">{job.service}</div>
-      <div className="text-gray-600 truncate">{job.client}</div>
-      <div className="text-gray-500">{job.time}</div>
-      <Badge className={`text-xs mt-1 ${
-        job.status === 'completed' ? 'bg-green-100 text-green-800' :
-        job.status === 'in-progress' ? 'bg-orange-100 text-orange-800' :
-        'bg-blue-100 text-blue-800'
-      }`}>
-        {job.status}
-      </Badge>
-    </div>
-  )
-}
-
-// Job Card Component that matches the reference image exactly
-const JobCardReference = ({ job, onUpdate, onViewDetails }: { job: any, onUpdate: () => void, onViewDetails: (job: any) => void }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200'
-      case 'in-progress': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
-
-  return (
-    <Card className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        {/* Header Section */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{job.client}</h3>
-              <p className="text-gray-600">{job.service}</p>
-            </div>
-          </div>
-          <Badge className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(job.status)}`}>
-            {job.status}
-          </Badge>
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {/* Time */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-blue-600 mb-2">
-              <Clock className="h-4 w-4" />
-              <span className="text-sm font-medium">Time</span>
-            </div>
-            <p className="text-blue-900 font-semibold">{job.time}</p>
-          </div>
-
-          {/* Duration */}
-          <div className="bg-green-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-green-600 mb-2">
-              <Calendar className="h-4 w-4" />
-              <span className="text-sm font-medium">Duration</span>
-            </div>
-            <p className="text-green-900 font-semibold">{job.duration}h</p>
-          </div>
-
-          {/* Service */}
-          <div className="bg-yellow-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-yellow-600 mb-2">
-              <Star className="h-4 w-4" />
-              <span className="text-sm font-medium">Service</span>
-            </div>
-            <p className="text-yellow-900 font-semibold">{job.service}</p>
-          </div>
-
-          {/* Staff */}
-          <div className="bg-purple-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-purple-600 mb-2">
-              <User className="h-4 w-4" />
-              <span className="text-sm font-medium">Staff</span>
-            </div>
-            <p className="text-purple-900 font-semibold">{job.staff.length || 0}</p>
-          </div>
-        </div>
-
-        {/* Bottom Section */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-gray-600">
-              <MapPin className="h-4 w-4" />
-              <span className="text-sm">{job.address}</span>
-            </div>
-            {job.price && (
-              <div className="text-xl font-bold text-green-600">
-                ${Number(job.price).toLocaleString()}
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1">
-              <MessageCircle className="h-4 w-4" />
-              Message
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1">
-              <Phone className="h-4 w-4" />
-              Call
-            </Button>
-            <Button 
-              size="sm" 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-              onClick={() => onViewDetails(job)}
-            >
-              View Details
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 
